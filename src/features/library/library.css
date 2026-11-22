@@ -16,7 +16,7 @@
 /* «Βιβλιοθήκη» (Library): links, guidelines, clinical guides and news for every user. */
 .lib-workspace{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .lib-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 14px 16px;display:grid;gap:16px;align-content:start}
-.lib-chips{display:flex;flex:0 0 auto;flex-wrap:nowrap;align-items:center;gap:6px;margin-top:-4px;padding:0 14px 13px;overflow-x:auto;scrollbar-width:thin}
+.lib-chips{display:flex;flex:0 0 auto;flex-wrap:nowrap;align-items:center;gap:6px;padding:12px 14px;overflow-x:auto;scrollbar-width:thin}
 /* In «Νέα» the chips open the list: the list's own side padding, and room above them. */
 .lib-news .lib-chips{margin-top:0;padding:14px 0 2px}
 .lib-chip{display:inline-flex;flex:0 0 auto;align-items:center;gap:6px;min-height:34px;padding:0 13px;white-space:nowrap;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
