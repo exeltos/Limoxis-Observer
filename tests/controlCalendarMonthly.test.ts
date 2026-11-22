@@ -78,3 +78,29 @@ describe('Control calendar: monthly summary of the stored marks', () => {
     for (const create of creates) expect(create).toContain("set search_path to ''")
   })
 })
+
+describe('Control calendar: other time zones from the same monthly summary', () => {
+  const zones = readSource('supabase/migrations/20261231625000_control_calendar_other_zones.sql').replace(/^\s*--.*$/gm, '')
+
+  it('keeps the signature and SECURITY INVOKER, and runs the previous body only for a null zone or an organisation being rebuilt', () => {
+    expect(zones).toContain("create or replace function public.control_calendar_months(p_organization_id uuid, p_year integer, p_time_zone text default 'UTC'::text)")
+    expect(zones).toContain('returns table(assignment_id uuid, month integer, done bigint, late bigint, marks jsonb)')
+    expect(zones).not.toMatch(/security definer/i)
+    expect(zones).toContain('if p_time_zone is null\n     or exists (select 1 from private.control_marks_orgs o where o.organization_id = p_organization_id and not o.ready) then')
+    expect(zones).toContain("if p_time_zone <> 'Europe/Athens' then")
+  })
+
+  it('adds the zone/Athens differences at the 13 month starts to the Athens summary, only for frequent controls inside the bounds', () => {
+    expect(zones).toMatch(/create index if not exists control_execution_marks_store_org_time_idx on private\.control_execution_marks_store\s+\(organization_id, performed_at\)/)
+    expect(zones).toContain('from generate_series(1, 13) g(b)')
+    expect(zones).toContain("make_timestamptz(p_year + (g.b - 1) / 12, (g.b - 1) % 12 + 1, 1, 0, 0, 0, 'Europe/Athens') as ath_at")
+    expect(zones).toContain('and s.performed_at >= least(g.tz_at, g.ath_at) and s.performed_at < greatest(g.tz_at, g.ath_at)) s')
+    expect(zones).toContain('join vis v on v.assignment_id = w.assignment_id and v.clean and v.frequent')
+    expect(zones).toContain('where p.b between 1 and 12')
+    expect(zones).toContain('having sum(p.done) > 0')
+    // Infrequent controls (their days in the zone) and controls with entries outside the bounds: from the store.
+    expect(zones).toContain('where not (v.clean and v.frequent)')
+    expect(zones).toContain('order by r.local_at)')
+    expect(zones).not.toMatch(/^\s*(drop|revoke|delete|truncate|alter policy)\b/im)
+  })
+})
