@@ -16,6 +16,7 @@ import { employeeRows } from '../employees/employeeDemoData'
 import { demoPatientDayPeriods } from '../management/managementData'
 import { pendingActionsOf } from './dashboardTasks'
 import { loadSnapshot } from '../../core/data/repository'
+import { demoSelfStatuses } from '../quality/selfAssessment/selfAssessmentDemo'
 import { isCommunicated } from '../surveillance/recordAttention'
 import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { interviewsDemoState } from '../interviews/interviewsDemoData'
@@ -77,8 +78,9 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   const metrics: Record<string, number | undefined> = {
     activeUsers: 3,
     activeDepartments: m.departmentCount,
-    // null, not []: the self-assessments seed themselves when their list first opens (a cached [] would stop it).
-    selfAssessmentsOpen: (loadSnapshot('quality_local_self_assessments', null) || []).filter(
+    // null, not []: the self-assessments seed themselves when their list first opens (a cached [] would stop it);
+    // until then the count reads the same Demo rounds.
+    selfAssessmentsOpen: (loadSnapshot('quality_local_self_assessments', null) || demoSelfStatuses()).filter(
       (item: SelfAssessment) => item.status === 'released' && (!department || item.departmentName === department),
     ).length,
     patientDayPeriods: demoPatientDayPeriods.length,
