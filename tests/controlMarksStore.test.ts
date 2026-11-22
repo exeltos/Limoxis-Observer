@@ -82,4 +82,16 @@ describe('Control marks store (stored on-time results)', () => {
     expect(sql).not.toMatch(/^\s*(drop|revoke|delete|truncate|alter policy)\b/im)
     expect(sql).not.toMatch(/;\s*(drop|revoke|delete|truncate)\b/i)
   })
+
+  it('serialises the updates of one assignment: a frequency change and an execution written at the same time', () => {
+    const lock = readSource('supabase/migrations/20261231619000_control_marks_lock.sql')
+    expect(lock).toContain("pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('control_marks:' || v_id::text, 0))")
+    expect(lock).toContain('select distinct x from unnest(p_assignment_ids) x where x is not null order by x')
+    // Each trigger locks before it reads the frequency or the executions.
+    expect(lock.indexOf('perform private.control_marks_lock(v_lock);')).toBeLessThan(lock.indexOf("->> 'kind' = 'daily' into v_daily"))
+    expect(lock).toContain('perform private.control_marks_lock(array[new.id]);\n  perform private.control_marks_compute(null, array[new.id]);')
+    expect(lock).toContain('perform private.control_marks_lock(v_ids);\n    perform private.control_marks_compute(null, v_ids);')
+    expect((lock.match(/security definer\n set search_path to ''/g) || []).length).toBe(3)
+    expect(lock).not.toMatch(/^\s*(drop|revoke|delete|truncate|alter policy)\b/im)
+  })
 })
