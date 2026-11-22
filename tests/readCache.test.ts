@@ -37,6 +37,17 @@ describe('read cache', () => {
     expect(read).toHaveBeenCalledTimes(2)
   })
 
+  it('keeps no answer that keep() rejects, e.g. empty counts standing for a failed read', async () => {
+    const read = vi.fn().mockResolvedValueOnce({}).mockResolvedValue({ n: 2 })
+    const keep = (value: Record<string, number>) => Boolean(Object.keys(value).length)
+    await expect(cachedRead('rpc', {}, read, { keep })).resolves.toEqual({})
+    expect(peekCachedRead('rpc', {})).toBeUndefined()
+    await expect(cachedRead('rpc', {}, read, { keep })).resolves.toEqual({ n: 2 })
+    expect(peekCachedRead('rpc', {})).toEqual({ n: 2 })
+    expect(read).toHaveBeenCalledTimes(2)
+    expect(readSource('src/features/dashboard/dashboardCloudService.ts')).toContain('},{keep:metrics=>Boolean(Object.keys(metrics).length)})')
+  })
+
   it('never shares an answer between hospitals or between the Demo and production', async () => {
     await cachedRead('rpc', {}, async () => 'hospital one')
     configureDataEnvironment({ mode: 'demo', organizationId: 'org-1', demoAccountId: 'acc' })

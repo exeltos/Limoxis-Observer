@@ -38,7 +38,7 @@ export function loadDashboardMetrics(organizationId: string | null | undefined,{
       if(await storedKey(key)===before)writeUserCache(before,metrics)
     }).catch(()=>{})
     return promise
-  })
+  },{keep:metrics=>Boolean(Object.keys(metrics).length)})
 }
 // The counts read a moment ago, at once (no read): the home page shows them on its first paint when the user returns.
 export function peekDashboardMetrics(organizationId: string | null | undefined,{departmentIds=null}: { departmentIds?: string[] | null }={}): DashboardMetrics | undefined{

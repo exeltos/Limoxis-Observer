@@ -31,15 +31,16 @@ function current(): Map<string, { at: number, promise: Promise<unknown>, value?:
 const keyOf=(name: string,args: unknown)=>`${dataPartitionKey()}|${name}|${JSON.stringify(args??null)}`
 
 // The answer of `read` for these arguments: the one kept, while younger than `ttlMs`, else a new read (one at a time per
-// key). A failed read is not kept.
-export function cachedRead<T>(name: string,args: unknown,read: ()=>Promise<T>,{ttlMs=READ_CACHE_MS}: { ttlMs?: number }={}): Promise<T> {
+// key). A failed read is not kept, nor an answer `keep` rejects (e.g. an empty answer that stands for a failure).
+export function cachedRead<T>(name: string,args: unknown,read: ()=>Promise<T>,{ttlMs=READ_CACHE_MS,keep}: { ttlMs?: number, keep?: (value: T)=>boolean }={}): Promise<T> {
   const store=current(),key=keyOf(name,args),now=Date.now(),hit=store.get(key)
   if(hit&&now-hit.at<ttlMs)return hit.promise as Promise<T>
   const entry: { at: number, promise: Promise<unknown>, value?: unknown, settled: boolean }={at:now,promise:Promise.resolve(),settled:false}
   const promise=read()
   entry.promise=promise
   store.set(key,entry)
-  promise.then(value=>{entry.value=value;entry.settled=true},()=>{if(store.get(key)===entry)store.delete(key)})
+  const drop=()=>{if(store.get(key)===entry)store.delete(key)}
+  promise.then(value=>{if(keep&&!keep(value)){drop();return}entry.value=value;entry.settled=true},drop)
   return promise
 }
 
