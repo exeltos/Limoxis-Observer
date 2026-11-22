@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterSelf, isOverdue, selfChapters, selfCounts, selfFigures, selfGaps, selfStatusLabel } from '../src/features/quality/selfAssessment/selfAssessmentModel'
+import { filterSelf, isOverdue, selfChapters, selfCounts, selfDefaultTitle, selfFigures, selfGaps, selfStandard, selfStatusLabel, sortSelf } from '../src/features/quality/selfAssessment/selfAssessmentModel'
 import type { SelfAssessment } from '../src/features/quality/selfAssessment/selfAssessmentModel'
 import { readSource } from './helpers/readSource'
 
@@ -29,6 +29,30 @@ describe('Self-assessment model', () => {
     expect(isOverdue(items[0], '2026-10-28')).toBe(false)
     expect(filterSelf(items, 'μεθ').length).toBe(2)
     expect(selfStatusLabel('released', 'en')).toBe('In progress')
+  })
+
+  it('lists the current round first: open before closed, then the latest due date', () => {
+    const items = [
+      { id: 'old', status: 'closed', dueOn: '2025-03-31' },
+      { id: 'mid', status: 'closed', dueOn: '2026-03-31' },
+      { id: 'late', status: 'submitted', dueOn: '2026-03-31' },
+      { id: 'now', status: 'released', dueOn: '2026-12-10' },
+      { id: 'draft', status: 'draft', dueOn: '', releasedAt: '', updatedAt: '2026-11-20T10:00:00Z' },
+    ] as SelfAssessment[]
+    expect(sortSelf(items).map(item => item.id)).toEqual(['now', 'draft', 'late', 'mid', 'old'])
+  })
+
+  it('names the standard only when there is one and builds a title that does not repeat itself', () => {
+    expect(selfStandard('other')).toBe('')
+    expect(selfStandard('')).toBe('')
+    expect(selfStandard('iso9001')).toBe('ISO 9001')
+    expect(selfDefaultTitle('Λίστα ελέγχου κλινικού τμήματος (αυτοαξιολόγηση)', 'el', '2026-11-22')).toBe('Αυτοαξιολόγηση · Λίστα ελέγχου κλινικού τμήματος · Νοέμβριος 2026')
+    expect(selfDefaultTitle('Ward checklist (self-assessment)', 'en', '2026-03-02')).toBe('Self-assessment · Ward checklist · March 2026')
+  })
+
+  it('the demo list seeds itself whichever screen opens first and shows the clause code apart', () => {
+    expect(readSource('src/features/dashboard/demoDashboardMetrics.ts')).toContain("loadSnapshot('quality_local_self_assessments', null)")
+    expect(readSource('src/features/quality/selfAssessment/SelfAssessmentRunPage.tsx')).toContain('<span className="self-clause">{row.clauseRef}</span>')
   })
 })
 

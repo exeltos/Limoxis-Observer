@@ -80,9 +80,26 @@ export function selfCounts(items: SelfAssessment[] = []) {
   }
 }
 
+// The standard a self-assessment answers to, or nothing for the ward checklist and other internal criteria («other»).
+export const selfStandard = (standard: string | null | undefined) => (standard && standard !== 'other' ? standardShort(standard) : '')
+
+// The current round first (owner, 22/11/2026): the open ones before the closed, then the latest due date (or release) first.
+const selfDay = (item: SelfAssessment) => item.dueOn || (item.releasedAt || item.updatedAt || '').slice(0, 10)
+export const sortSelf = (items: SelfAssessment[] = []) => [...items].sort((a, b) => Number(a.status === 'closed') - Number(b.status === 'closed') || selfDay(b).localeCompare(selfDay(a)) || (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+
+// The title a new self-assessment opens with: «Αυτοαξιολόγηση · <questionnaire> · <month year>», without the
+// questionnaire's own «(αυτοαξιολόγηση)», so the word is not said twice.
+const MONTHS = { el: ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'], en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] }
+export function selfDefaultTitle(templateTitle = '', language = 'el', day = hospitalToday()) {
+  const en = language === 'en'
+  const name = String(templateTitle || '').replace(/\s*\((αυτοαξιολόγηση|self-assessment)\)\s*$/i, '').trim()
+  const month = Number(day.slice(5, 7))
+  return [en ? 'Self-assessment' : 'Αυτοαξιολόγηση', name, month ? `${MONTHS[en ? 'en' : 'el'][month - 1]} ${day.slice(0, 4)}` : ''].filter(Boolean).join(' · ')
+}
+
 // The search finds a row by anything it shows (owner, 19/11/2026: the searches find everything).
 export function filterSelf(items: SelfAssessment[] = [], query = '', language = 'el') {
-  return items.filter(item => matchesSearch(query, [item.title, item.departmentName, item.standard ? standardShort(item.standard) : '', item.score == null ? '' : `${item.score}%`, formatDay(item.dueOn, language), isOverdue(item) ? (language === 'en' ? 'overdue' : 'εκπρόθεσμη') : '', selfStatusLabel(item.status, language)]))
+  return items.filter(item => matchesSearch(query, [item.title, item.departmentName, selfStandard(item.standard), item.score == null ? '' : `${item.score}%`, formatDay(item.dueOn, language), isOverdue(item) ? (language === 'en' ? 'overdue' : 'εκπρόθεσμη') : '', selfStatusLabel(item.status, language)]))
 }
 
 export const selfExport = (items: SelfAssessment[] = [], language = 'el') => {

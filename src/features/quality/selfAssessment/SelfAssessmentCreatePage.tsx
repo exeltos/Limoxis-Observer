@@ -19,6 +19,7 @@ import { useDepartments, type LibraryDepartment } from '../../management/useLibr
 import { useAuditTemplates } from '../audits/useAuditTemplates'
 import { AUDIT_AREAS, areaLabel, departmentArea, standardShort } from '../audits/auditStandards'
 import { createSelfAssessments } from './selfAssessmentService'
+import { selfDefaultTitle } from './selfAssessmentModel'
 import './selfAssessment.css'
 
 const L = (en: boolean, el: string, english: string) => (en ? english : el)
@@ -48,8 +49,8 @@ export function SelfAssessmentCreatePage() {
     if (templateId || !active.length) return
     const first = active.find(item => item.key === 'ward') || active[0]
     setTemplateId(first.id)
-    setTitle(`${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${first.title}`)
-  }, [active, templateId, en])
+    setTitle(selfDefaultTitle(first.title, language))
+  }, [active, templateId, language])
   const template = active.find(item => item.id === templateId)
   const all = useMemo(() => (departments as (LibraryDepartment & { el?: string })[]).map(item => ({ id: item.id || item.name, name: item.name || item.el || '', area: departmentArea(item.name || item.el || '') })).filter(item => item.name).sort((a, b) => a.name.localeCompare(b.name, 'el')), [departments])
   const shown = all.filter(item => !search.trim() || item.name.toLowerCase().includes(search.trim().toLowerCase()))
@@ -61,7 +62,7 @@ export function SelfAssessmentCreatePage() {
     setBusy(true)
     try {
       const chosen = all.filter(item => picked.includes(item.id)).map(item => ({ id: item.id, name: item.name }))
-      const made = await createSelfAssessments(tenant?.id, { template, departments: chosen, title: title.trim() || `${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${template.title}`, dueOn })
+      const made = await createSelfAssessments(tenant?.id, { template, departments: chosen, title: title.trim() || selfDefaultTitle(template.title, language), dueOn })
       if (!made.length) { notify(L(en, 'Το ερωτηματολόγιο δεν έχει ερωτήσεις για τα τμήματα που επιλέξατε.', 'The questionnaire has no questions for the chosen departments.'), 'error'); return }
       notify(L(en, `Δημιουργήθηκαν ${made.length} αυτοαξιολογήσεις (πρόχειρες).`, `${made.length} self-assessments were created (drafts).`), 'success')
       goBack()
@@ -73,7 +74,7 @@ export function SelfAssessmentCreatePage() {
     tabs={[]} activeTab="" onTabChange={() => {}} onBack={goBack}>
     <div className="record-section self-create-page">
       <FormGrid columns={3} className="self-create-fields">
-        <ChoiceField label={L(en, 'Ερωτηματολόγιο *', 'Questionnaire *')} value={templateId} disabled={loading} onChange={value => { setTemplateId(value); const next = active.find(item => item.id === value); if (next && (!title || title.startsWith(L(en, 'Αυτοαξιολόγηση', 'Self-assessment')))) setTitle(`${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${next.title}`) }}
+        <ChoiceField label={L(en, 'Ερωτηματολόγιο *', 'Questionnaire *')} value={templateId} disabled={loading} onChange={value => { setTemplateId(value); const next = active.find(item => item.id === value); if (next && (!title || title.startsWith(L(en, 'Αυτοαξιολόγηση', 'Self-assessment')))) setTitle(selfDefaultTitle(next.title, language)) }}
           options={active.map(item => ({ value: item.id, label: `${item.title} (${item.questions.length})`, description: standardShort(item.standard) }))} placeholder={L(en, 'Επιλέξτε ερωτηματολόγιο…', 'Choose a questionnaire…')} />
         <Field label={L(en, 'Τίτλος', 'Title')}><input value={title} onChange={event => setTitle(event.target.value)} maxLength={160} /></Field>
         <ManualDateField label={L(en, 'Προθεσμία', 'Due date')} value={dueOn} onChange={setDueOn} />

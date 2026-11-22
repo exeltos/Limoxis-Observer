@@ -77,7 +77,8 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   const metrics: Record<string, number | undefined> = {
     activeUsers: 3,
     activeDepartments: m.departmentCount,
-    selfAssessmentsOpen: (loadSnapshot('quality_local_self_assessments', []) || []).filter(
+    // null, not []: the self-assessments seed themselves when their list first opens (a cached [] would stop it).
+    selfAssessmentsOpen: (loadSnapshot('quality_local_self_assessments', null) || []).filter(
       (item: SelfAssessment) => item.status === 'released' && (!department || item.departmentName === department),
     ).length,
     patientDayPeriods: demoPatientDayPeriods.length,
