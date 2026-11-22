@@ -63,6 +63,10 @@ describe('dashboard counts', () => {
     // A department's home also counts its controls due today and its self-assessments to complete: two more counts.
     await loadDashboardMetrics('org-1', { departmentIds: ['dep-1'] })
     expect(countQueries).toBe(perRead * 2 + 2)
+    // Back on the home page within two minutes: the same answer, no new read; after that, a new read.
+    vi.advanceTimersByTime(90 * 1000)
+    await loadDashboardMetrics('org-1')
+    expect(countQueries).toBe(perRead * 2 + 2)
     vi.advanceTimersByTime(31 * 1000)
     await loadDashboardMetrics('org-1')
     expect(countQueries).toBe(perRead * 3 + 2)

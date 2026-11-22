@@ -217,6 +217,8 @@ export interface AuditFields {
   leadAuditor?: string
   leadAuditorId?: string | null
   checklist?: AuditChecklistItem[]
+  // Read from a list: the checklist holds the answers only (no questions or notes); a save keeps the stored one.
+  checklistSummary?: boolean
   checklistSource?: string
   templateId?: string | null
   templateTitle?: string

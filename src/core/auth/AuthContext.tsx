@@ -4,6 +4,7 @@ import { supabase } from '../supabase/client'
 import { signInWithPassword, signOut as remoteSignOut, touchLoginSession } from './authService'
 import { invalidateEmployeesCache } from '../../features/employees/employeesCache'
 import { clearUserCache } from '../data/userCache'
+import { forgetCachedReads } from '../data/readCache'
 import { loadCurrentDemoAccess } from '../tenant/tenantService'
 import { ROLES } from '../permissions/roles'
 import { OWNER_PREVIEW_USER,isOwnerPreview } from '../preview/ownerPreview'
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   const hydrateSession=useCallback(async(nextSession: AuthSession | null | undefined,{force=false}:{force?:boolean}={}): Promise<Profile | null>=>{
     const transition=++transitionRef.current
     if(!nextSession?.user){
+      forgetCachedReads()
       if(transition===transitionRef.current)setAuthState({session:null,profile:null,loading:false})
       return null
     }
@@ -75,6 +77,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
       if(current.loading)setAuthState({...current,loading:false})
       return current.profile
     }
+    if(current.profile?.id&&current.profile.id!==nextSession.user.id)forgetCachedReads()
     try{
       const nextProfile=await loadProfile(nextSession.user)
       if(transition!==transitionRef.current)return nextProfile
@@ -132,6 +135,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   const logout = useCallback(async () => {
     invalidateEmployeesCache()
     clearUserCache()
+    forgetCachedReads()
     if(listenerTimerRef.current){clearTimeout(listenerTimerRef.current);listenerTimerRef.current=null}
     if (authState.profile?.isDemo) {
       transitionRef.current+=1
@@ -155,6 +159,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
       stopped=true
       try{window.sessionStorage.setItem('limoxis.sessionEnded','1')}catch{/* storage unavailable */}
       clearUserCache()
+      forgetCachedReads()
       try{await remoteSignOut()}catch{/* the session is already gone */}
       await hydrateSession(null)
     }

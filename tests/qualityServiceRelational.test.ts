@@ -1,5 +1,6 @@
 // What the Quality services write to the detail tables of 20261116100000,
 // against a recording Supabase double.
+import type { QualityRecord } from '../src/features/quality/qualityTypes'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 let queries
@@ -27,7 +28,7 @@ vi.mock('../src/core/supabase/client', () => ({ supabase: { from: table => build
 vi.mock('../src/core/data/dataEnvironment', () => ({ isDemoDataEnvironment: () => false }))
 vi.mock('../src/core/preview/ownerPreview', () => ({ isOwnerPreview: () => false }))
 
-const { createQualityRecord, saveQualityRecord, addCapaProgress } = await import('../src/features/quality/qualityService')
+const { createQualityRecord, saveQualityRecord, addCapaProgress, loadQualityRecords, loadQualityRecord, loadAuditChecklists } = await import('../src/features/quality/qualityService')
 const { saveSupplier } = await import('../src/features/quality/resources/resourceService')
 
 const ORG = 'org-1'
@@ -112,6 +113,41 @@ describe('saving an audit checklist', () => {
     const [upsert] = writes('quality_audit_checklist_items', 'upsert')
     expect(upsert.payload[0]).toMatchObject({ audit_id: CAPA, position: 1, item: 'ΜΑΠ', item_en: 'PPE', answer: 'no', finding_id: 'finding-uuid' })
     expect(writes('quality_audits', 'update')[0].payload).not.toHaveProperty('checklist')
+  })
+
+  it('leaves the stored checklist alone when the record came from a list (answers only)', async () => {
+    await saveQualityRecord('audits', ORG, { id: 'AUD-1', title: 'Α', status: 'planned', history: [], checklistSummary: true, checklist: [{ answer: 'yes' }] } as never)
+    expect(writes('quality_audits', 'update')).toHaveLength(1)
+    expect(queries.filter(q => q.table === 'quality_audit_checklist_items')).toHaveLength(0)
+  })
+})
+
+describe('reading audits', () => {
+  const AUDIT = '77777777-7777-4777-8777-777777777777'
+  it('the list reads the checklist answers only, the record the whole checklist', async () => {
+    stored.quality_audits = [{ id: AUDIT, code: 'AUD-1', title: 'Α', status: 'completed', checklist: [{ position: 2, result: 'no', weight: 2 }, { position: 1, result: 'yes', weight: 1 }] }]
+    const [audit] = await loadQualityRecords('audits', ORG)
+    const list = queries.find(q => q.table === 'quality_audits')
+    expect(list.columns).toContain('checklist:quality_audit_checklist_items(position,result,answer,weight,chapter_ref,chapter_title,clause_ref,standard)')
+    expect(list.columns).not.toContain('quality_findings')
+    expect(audit.checklistSummary).toBe(true)
+    expect(audit.checklist.map(row => row.answer)).toEqual(['yes', 'no'])
+    queries = []
+    stored.quality_audits = { ...stored.quality_audits[0] }
+    const record = await loadQualityRecord('audits', ORG, 'AUD-1')
+    expect(queries[0].columns).toContain('checklist:quality_audit_checklist_items(*,finding:quality_findings')
+    expect(record.checklistSummary).toBeUndefined()
+  })
+
+  it('reads the whole checklists of a list for a printed report', async () => {
+    stored.quality_audit_checklist_items = [{ id: 'q2', audit_id: AUDIT, position: 2, item: 'Β', result: 'no', note: 'σχόλιο' }, { id: 'q1', audit_id: AUDIT, position: 1, item: 'Α', result: 'yes', finding: { code: 'FND-1' } }]
+    const [audit, other] = await loadAuditChecklists(ORG, [{ id: 'AUD-1', dbId: AUDIT, checklistSummary: true, checklist: [] }, { id: 'AUD-2', checklist: [{ item: 'Γ' }] }] as QualityRecord[])
+    const [read] = queries.filter(q => q.table === 'quality_audit_checklist_items')
+    expect(filter(read, 'audit_id')).toEqual([AUDIT])
+    expect(filter(read, 'organization_id')).toBe(ORG)
+    expect(audit.checklistSummary).toBe(false)
+    expect(audit.checklist.map(row => [row.item, row.answer, row.note, row.findingId])).toEqual([['Α', 'yes', '', 'FND-1'], ['Β', 'no', 'σχόλιο', undefined]])
+    expect(other.checklist).toEqual([{ item: 'Γ' }])
   })
 })
 

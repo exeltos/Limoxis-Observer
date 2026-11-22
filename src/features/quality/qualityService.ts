@@ -1,14 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase as configuredClient } from '../../core/supabase/client'
-import { selectAllPages } from '../../core/data/inChunks'
+import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadQualityLocal, saveQualityLocal } from './qualityStore'
 import { missingNextAudits, spreadAuditRound } from './audits/auditModel'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { DETAIL_TABLES, INCIDENT_DETAIL_SELECT, incidentDetailRows, incidentDetailsFromRow, keptDetails } from './incidentDetails'
-import { CHECKLIST_FIELDS, CHECKLIST_SELECT, ROOT_CAUSE_SELECT, TEAM_FIELDS, teamFromRows, teamRows, SUB_ACTION_FIELDS, analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, newRowId, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from './qualityRelations'
+import { CHECKLIST_COLUMNS, CHECKLIST_FIELDS, CHECKLIST_SELECT, CHECKLIST_SUMMARY_SELECT, ROOT_CAUSE_SELECT, TEAM_FIELDS, teamFromRows, teamRows, SUB_ACTION_FIELDS, analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, newRowId, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from './qualityRelations'
 import { hospitalToday } from '../../core/dates/hospitalDate'
-import type { AuditChecklistItem, AuditRoundItem, AuditRoundTemplate, CapaProgressEntry, ChildRow, IncidentDetailKey, QualityDbRow, QualityDraft, QualityRecord } from './qualityTypes'
+import type { AuditChecklistItem, AuditChecklistRow, AuditRoundItem, AuditRoundTemplate, CapaProgressEntry, ChildRow, IncidentDetailKey, QualityDbRow, QualityDraft, QualityRecord } from './qualityTypes'
 
 // The calls below run with a configured client: the demo and an unconfigured build return before them.
 // Untyped: a record's table is chosen at run time from its section (sectionConfig).
@@ -22,11 +22,11 @@ const supabase = configuredClient as unknown as SupabaseClient
 
 const TEAM_SELECT='team:quality_audit_team_members(*,employee:employees(department_id,department_name))'
 
-const sectionConfig: Record<string, { table: string, date: string, select: string }>={
+const sectionConfig: Record<string, { table: string, date: string, select: string, list?: string }>={
   incidents:{table:'quality_incidents',date:'occurred_at',select:`*,department:departments(name),${INCIDENT_DETAIL_SELECT}`},
   findings:{table:'quality_findings',date:'identified_at',select:'*,department:departments(name)'},
   capas:{table:'quality_capa_actions',date:'due_date',select:`*,department:departments(name),sub_actions:quality_capa_sub_actions(*),${ROOT_CAUSE_SELECT},progress:quality_capa_progress(*)`},
-  audits:{table:'quality_audits',date:'planned_date',select:`*,department:departments(name),${CHECKLIST_SELECT},${TEAM_SELECT}`},
+  audits:{table:'quality_audits',date:'planned_date',select:`*,department:departments(name),${CHECKLIST_SELECT},${TEAM_SELECT}`,list:`*,department:departments(name),${CHECKLIST_SUMMARY_SELECT},${TEAM_SELECT}`},
 }
 
 function assertReady(organizationId: string | null | undefined){
@@ -224,13 +224,27 @@ export async function loadQualityRecords(section: string,organizationId: string 
   const config=sectionConfig[section]
   if(!config) return []
   // Page by page: a register past 1,000 records was cut at the API's row cap.
+  // An audit list carries the checklist's answers only (CHECKLIST_SUMMARY_SELECT): the
+  // record reads the whole of it, and a save leaves the stored checklist as it is.
   const data=await selectAllPages(()=>supabase
     .from(config.table)
-    .select(config.select)
+    .select(config.list||config.select)
     .eq('organization_id',organizationId)
     .order(config.date,{ascending:false,nullsFirst:false})
     .order('id'))
-  return (await withFollowUpCodes(section,organizationId,data||[])).map((row: QualityDbRow)=>mapRow(section,row))
+  return (await withFollowUpCodes(section,organizationId,data||[])).map((row: QualityDbRow)=>config.list?{...mapRow(section,row),checklistSummary:true}:mapRow(section,row))
+}
+
+// The whole checklist of each audit of a list (the printed reports read the questions and the notes).
+export async function loadAuditChecklists<T extends {dbId?: string | null, checklistSummary?: boolean}>(organizationId: string | null | undefined,audits: T[]=[]): Promise<T[]>{
+  const ids=audits.filter(audit=>audit.checklistSummary&&audit.dbId).map(audit=>audit.dbId as string)
+  if(isDemoDataEnvironment()||!ids.length)return audits
+  assertReady(organizationId)
+  const {data,error}=await selectInChunks(ids,chunk=>supabase.from('quality_audit_checklist_items').select(CHECKLIST_COLUMNS).eq('organization_id',organizationId as string).in('audit_id',chunk).order('id'))
+  if(error)throw error
+  const byAudit=new Map<string, AuditChecklistRow[]>()
+  for(const row of (data||[]) as AuditChecklistRow[]){const list=byAudit.get(row.audit_id)||[];list.push(row);byAudit.set(row.audit_id,list)}
+  return audits.map(audit=>(audit.checklistSummary&&audit.dbId?{...audit,checklist:checklistFromRows(byAudit.get(audit.dbId)),checklistSummary:false}:audit))
 }
 
 // The incidents linked to an episode (its surveillance cases, or its admission), newest first.
@@ -346,7 +360,8 @@ async function auditIdOf(organizationId: string | null | undefined,code: string 
 async function writeDetails(section: string,organizationId: string | null | undefined,id: string,record: QualityDraft,options: {creating?: boolean}={}){
   if(section==='incidents')await writeIncidentDetails(organizationId,id,record,options)
   if(section==='capas')await writeCapaDetails(organizationId,id,record)
-  if(section==='audits'){await writeAuditChecklist(organizationId,id,record.checklist||[]);await writeAuditTeam(organizationId,id,record.team)}
+  // A record read from a list holds only the answers of its checklist: the stored checklist stays.
+  if(section==='audits'){if(options.creating||!record.checklistSummary)await writeAuditChecklist(organizationId,id,record.checklist||[]);await writeAuditTeam(organizationId,id,record.team)}
 }
 
 // The kind of audit (internal, external, certification, supplier); audit_type

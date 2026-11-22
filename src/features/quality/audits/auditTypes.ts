@@ -138,6 +138,7 @@ export interface QualityAudit {
   leadAuditor?: string
   leadAuditorId?: string | null
   checklist?: AuditAnswer[]
+  checklistSummary?: boolean
   checklistSource?: string
   templateId?: string | null
   templateTitle?: string
