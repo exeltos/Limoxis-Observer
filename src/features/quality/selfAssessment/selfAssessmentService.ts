@@ -6,7 +6,7 @@ import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { isEmptyPreview } from '../../../core/preview/emptyPreview'
 import { seededRandom } from '../../../core/data/demoSeed'
 import { selfChecklist, selfFigures, type SelfAssessment, type SelfRow, type SelfTemplate } from './selfAssessmentModel'
-import { hospitalDate } from '../../../core/dates/hospitalDate'
+import { demoSelfRounds } from './selfAssessmentDemo'
 
 // The self-assessments of departments (20261214100000_quality_self_assessments.sql). The
 // Quality team creates and releases them; a department answers through
@@ -90,13 +90,9 @@ export async function saveSelfAnswers(organizationId: string | null | undefined,
   return must(await cloudClient().rpc('quality_self_assessment_save', { p_id: item.id, p_answers: answers as Json, p_submit: submit })) as unknown as SelfAssessment
 }
 
-// The Demo's self-assessments (owner, 9/11/2026: the whole of 2025 and 2026): the clinical departments answered the
-// ward checklist in spring and autumn 2025 and in spring 2026 (submitted, then closed after the audit), and the
-// second round of 2026 is under way (in progress, one not answered yet, one still a draft). Answers are seeded,
+// The Demo's self-assessments, round by round (selfAssessmentDemo.ts). Answers are seeded,
 // so the scores are the same every time; they improve from round to round.
-const DEMO_SELF_DEPARTMENTS = ['ΜΕΘ', 'Παθολογική', 'Χειρουργική', 'Καρδιολογική', 'Ορθοπαιδική', 'Νεογνολογική / ΜΕΝΝ']
 const DEMO_SELF_NOTES: Record<string, string[]> = { partial: ['Λείπει η υπογραφή σε δύο ημέρες.', 'Εφαρμόζεται, αλλά δεν καταγράφεται πάντα.', 'Μερική ενημέρωση του νέου προσωπικού.'], no: ['Δεν βρέθηκε καταγραφή τον τελευταίο μήνα.', 'Το έντυπο δεν είναι διαθέσιμο στο τμήμα.'] }
-const isoDay = (days: number) => { const date = new Date(`${hospitalDate()}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
 const plusDays = (day: string, days: number) => new Date(Date.parse(`${day}T12:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
 
 async function demoSelfAssessments(organizationId: string | null | undefined): Promise<SelfAssessment[]> {
@@ -104,15 +100,7 @@ async function demoSelfAssessments(organizationId: string | null | undefined): P
   const { SYSTEM_TEMPLATES } = await import('../audits/seed/index.js')
   const template = SYSTEM_TEMPLATES.find(item => item.key === 'ward')
   if (!template) return []
-  const recent = isoDay(-12)
-  // [round, title, released on, due on, departments, status of each, share answered when in progress, quality]
-  const rounds: [string, string, string, string, string[], (index: number) => string, number, number][] = [
-    ['2025a', 'Αυτοαξιολόγηση άνοιξης 2025', '2025-03-03', '2025-03-31', DEMO_SELF_DEPARTMENTS, () => 'closed', 1, 0.78],
-    ['2025b', 'Αυτοαξιολόγηση φθινοπώρου 2025', '2025-10-01', '2025-10-31', DEMO_SELF_DEPARTMENTS.slice(0, 4), () => 'closed', 1, 0.84],
-    ['2026a', 'Αυτοαξιολόγηση άνοιξης 2026', '2026-03-02', '2026-03-31', DEMO_SELF_DEPARTMENTS, index => (index < 4 ? 'closed' : 'submitted'), 1, 0.88],
-    ['2026b', 'Αυτοαξιολόγηση Β΄ εξαμήνου 2026', recent, isoDay(18), DEMO_SELF_DEPARTMENTS.slice(0, 4), index => ['submitted', 'released', 'released', 'draft'][index], 0.55, 0.9],
-  ]
-  return rounds.flatMap(([round, title, released, dueOn, departments, statusOf, share, quality]) => departments.map((departmentName, index) => {
+  return demoSelfRounds().flatMap(([round, title, released, dueOn, departments, statusOf, share, quality]) => departments.map((departmentName, index) => {
     const status = statusOf(index)
     const rand = seededRandom(`self|${round}|${departmentName}`)
     const answeredShare = status === 'released' ? share * (index === 2 ? 0 : 1) : status === 'draft' ? 0 : 1

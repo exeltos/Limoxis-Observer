@@ -28,6 +28,7 @@
 .active-users-table td small{display:block;margin-top:3px;font-size:11px;color:var(--lo-color-muted)}
 .active-users-row-error td{background:var(--surface-neutral-975-6)}
 .active-users-code{font-family:Consolas,Menlo,monospace;font-size:13px;letter-spacing:.02em;white-space:nowrap}
+.active-users-auto{color:var(--lo-color-muted);font-family:inherit;font-size:12px;font-style:italic;letter-spacing:0}
 
 /* The forms of the «Νέος χρήστης ▾» dialogs (active, invitation): two columns, large controls and readable labels. */
 .user-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px;align-items:start}

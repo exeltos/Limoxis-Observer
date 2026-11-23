@@ -242,7 +242,7 @@ export interface TrainingProgramOptions { department?: TrainingDepartment | null
 export function hospitalProgramRows(records: Records, own: Own, today: string, { department = null, participation = null, requests = [], departments = [], organizers = new Map(), en = false }: TrainingProgramOptions = {}): TrainingProgramRow[] {
   const mine = new Map(ownTrainingRows(records, own, today).map(row => [String(row.assignment.programId || ''), row]))
   const counts = participation || participationFromAssignments(records)
-  return sortProgramRows(records.programs.filter(program => program.status !== 'cancelled' && (!department || programOrganisedByDepartment(program, department, organizers))).map(program => ({
+  return sortProgramRows(records.programs.filter(program => program.status !== 'cancelled' && (!department || programOrganisedByDepartment(program, department, organizers) || Boolean(programParticipation(program.id, counts, department)))).map(program => ({
     id: program.id, program, title: program.title || '', trainer: program.trainer || program.owner || '', audience: program.audience || '',
     startDate: day(program.startDate), dueDate: day(program.dueDate), state: programState(program, today), own: mine.get(String(program.id)) || null,
     participation: programParticipation(program.id, counts, department), request: latestOwnRequest(requests, program.id, own),

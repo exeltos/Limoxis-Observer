@@ -12,8 +12,7 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { exportRegistry } from '../../../core/export/registryExports'
-import { standardShort } from '../audits/auditStandards'
-import { filterSelf, isOverdue, selfCounts, selfExport, selfGaps, selfStatusLabel, selfStatusTone, type SelfAssessment } from './selfAssessmentModel'
+import { filterSelf, isOverdue, selfStandard, selfCounts, selfExport, selfGaps, selfStatusLabel, selfStatusTone, type SelfAssessment } from './selfAssessmentModel'
 import { removeSelfAssessment, setSelfStatus } from './selfAssessmentService'
 import { useSelfAssessments } from './useSelfAssessments'
 import './selfAssessment.css'
@@ -79,13 +78,13 @@ export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot
         columns={[{ key: 'title', label: L(en, 'Αυτοαξιολόγηση', 'Self-assessment'), sortValue: item => item.title }, { key: 'progress', label: L(en, 'Πρόοδος', 'Progress'), sortValue: item => (item.totalCount ? item.answeredCount / item.totalCount : null) }, { key: 'score', label: L(en, 'Βαθμός', 'Score'), sortValue: item => item.score }, { key: 'due', label: L(en, 'Προθεσμία', 'Due'), sortValue: item => item.dueOn }, { key: 'status', label: L(en, 'Κατάσταση', 'Status'), sortValue: item => item.status }, { key: 'actions', label: '', ariaLabel: L(en, 'Ενέργειες', 'Actions') }]}
         rowProps={item => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => navigate(`/quality/self-assessments/${item.id}`), onKeyDown: event => { if (event.key === 'Enter') navigate(`/quality/self-assessments/${item.id}`) } })}
         renderRow={item => <>
-          <td><strong>{item.title}</strong><small>{item.departmentName}{item.standard ? ` · ${standardShort(item.standard)}` : ''}</small></td>
+          <td><strong>{item.title}</strong><small>{item.departmentName}{selfStandard(item.standard) ? ` · ${selfStandard(item.standard)}` : ''}</small></td>
           <td><SelfAssessmentProgress answered={item.answeredCount} total={item.totalCount} label={L(en, 'Πρόοδος', 'Progress')} /></td>
           <td>{item.score == null ? '—' : `${item.score}%`}</td>
           <td className="nowrap-cell">{item.dueOn ? formatDay(item.dueOn, language) : '—'}{isOverdue(item) && <small className="quality-overdue-text">{L(en, 'εκπρόθεσμη', 'overdue')}</small>}</td>
           <td><StatusBadge tone={selfStatusTone(item.status)}>{selfStatusLabel(item.status, language)}</StatusBadge></td>
           <td onClick={event => event.stopPropagation()}>{canManage && <div className="row-actions">
-            {item.status === 'draft' && <Button variant="secondary" onClick={() => act(item, 'released', L(en, 'Ενεργοποιήθηκε: το τμήμα τη βλέπει τώρα.', 'Released: the department sees it now.'))}><Send size={14} />{L(en, 'Ενεργοποίηση για το τμήμα', 'Release to the department')}</Button>}
+            {item.status === 'draft' && <IconButton size="sm" label={L(en, 'Ενεργοποίηση για το τμήμα', 'Release to the department')} onClick={() => act(item, 'released', L(en, 'Ενεργοποιήθηκε: το τμήμα τη βλέπει τώρα.', 'Released: the department sees it now.'))}><Send size={14} /></IconButton>}
             {item.status === 'released' && <IconButton size="sm" label={L(en, 'Απόσυρση από το τμήμα', 'Withdraw from the department')} onClick={() => act(item, 'draft', L(en, 'Αποσύρθηκε από το τμήμα.', 'Withdrawn from the department.'))}><Undo2 size={14} /></IconButton>}
             {item.status === 'submitted' && <IconButton size="sm" label={L(en, 'Κλείσιμο', 'Close')} onClick={() => act(item, 'closed', L(en, 'Έκλεισε.', 'Closed.'))}><Lock size={14} /></IconButton>}
             <IconButton size="sm" tone="danger" label={L(en, 'Διαγραφή', 'Delete')} onClick={() => remove(item)}><Trash2 size={14} /></IconButton>

@@ -279,7 +279,7 @@ export const guideContent = {
       users: l('Υπεύθυνος Ποιότητας, Ομάδα Ελέγχου Λοιμώξεων, κάθε εργαζόμενος για αναφορά συμβάντος.', 'Quality Manager, Infection Control team, any employee to report an incident.'),
       needs: null,
       analysis: l('Καρτέλα «Ποιότητα»: συμβάντα, συμβάντα με βλάβη, ανοιχτές και εκπρόθεσμες διορθωτικές ενέργειες, σοβαρότητα και κατάσταση.', 'Tab “Quality”: incidents, incidents with harm, open and overdue CAPA, severity and status.'),
-      start: l('Αναφέρετε ένα συμβάν και ανοίξτε διορθωτική ενέργεια με υπεύθυνο και προθεσμία. Για την προετοιμασία επιθεώρησης: Επιθεωρήσεις › Αυτοαξιολόγηση, επιλέξτε ερωτηματολόγιο και τμήματα και ενεργοποιήστε την για να τη δουν τα τμήματα.', 'Report an incident and open a CAPA with an owner and due date. To prepare for an audit: Audits › Self-assessment, choose a questionnaire and departments and release it for the departments to see.'),
+      start: l('Αναφέρετε ένα συμβάν και ανοίξτε διορθωτική ενέργεια με υπεύθυνο και προθεσμία. Για την προετοιμασία επιθεώρησης: Επιθεωρήσεις › Αυτοαξιολόγηση, επιλέξτε ερωτηματολόγιο και τμήματα και ενεργοποιήστε την για να τη δουν τα τμήματα· η λίστα δείχνει πρώτα τον τρέχοντα γύρο (τις ανοιχτές, με την πιο πρόσφατη προθεσμία).', 'Report an incident and open a CAPA with an owner and due date. To prepare for an audit: Audits › Self-assessment, choose a questionnaire and departments and release it for the departments to see; the list shows the current round first (the open ones, latest due date first).'),
     },
     training: {
       what: l('Εκπαιδευτικά προγράμματα, συμμετέχοντες, ολοκληρώσεις, αξιολογήσεις και πιστοποιητικά.', 'Training programmes, participants, completions, assessments and certificates.'),

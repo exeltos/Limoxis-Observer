@@ -16,6 +16,8 @@ const stay = (from: string, to: string) => ({ key: 'length_of_stay', type: 'comp
 const count = (id: string, title: string, titleEn: string, extra = {}) => ({ id, title, titleEn, aggregation: 'count', filters: [], direction: 'context', ...extra })
 const share = (id: string, title: string, titleEn: string, filters: IndicatorFilter[], extra = {}) => ({ id, title, titleEn, aggregation: 'percent', filters, denominatorFilters: [], unit: '%', direction: 'context', ...extra })
 const average = (id: string, title: string, titleEn: string, field: string, extra = {}) => ({ id, title, titleEn, aggregation: 'mean', field, filters: [], direction: 'context', ...extra })
+// Device days per 100 patient-days of the stays that ended in the period (ΜΕΘ/ΜΕΝΝ, ιδιοκτήτης 22/11/2026).
+export const deviceUse = (id: string, title: string, titleEn: string, field: string, what: string, whatEn: string) => ({ id, title, titleEn, aggregation: 'rate', field, filters: [{ field: 'discharge_date', op: 'filled' }], denominatorFilters: [{ field: 'discharge_date', op: 'filled' }], denominatorField: 'length_of_stay', multiplier: 100, dateField: 'discharge_date', unit: '%', unitEn: '%', direction: 'context', note: `${what} ανά 100 ημέρες νοσηλείας, στον μήνα εξόδου.`, noteEn: `${whatEn} per 100 patient-days, in the month of discharge.` })
 
 const ICU: RegisterTemplate = {
   key: 'icu',
@@ -44,6 +46,9 @@ const ICU: RegisterTemplate = {
     { key: 'apache_mortality', section: 'severity', type: 'computed', computed: 'apacheII', from: 'apache_score', to: 'apache_postop', unit: '%', unitEn: '%', label: 'Προβλεπόμενη θνητότητα APACHE II', labelEn: 'APACHE II predicted mortality', help: 'Υπολογίζεται από το APACHE II score και το αν ο ασθενής είναι μετεγχειρητικός.', helpEn: 'Computed from the APACHE II score and whether the admission is post-operative.' },
     { key: 'euroscore', section: 'severity', type: 'number', unit: '%', unitEn: '%', min: 0, max: 100, label: 'EuroSCORE II', labelEn: 'EuroSCORE II', aliases: ['EUROSCORE'], showWhen: { field: 'category', value: 'cardiac' }, help: 'Μόνο για την Καρδιοχειρουργική ΜΕΘ, ως %.', helpEn: 'Cardiac surgery ICU only, as %.' },
     { key: 'ventilator_hours', section: 'stay', type: 'number', unit: 'ώρες', unitEn: 'hours', min: 0, max: 8760, label: 'Ώρες στον αναπνευστήρα', labelEn: 'Ventilator hours', aliases: ['ΧΡΟΝΟΣ ΠΑΡΑΜΟΝΗΣ ΣΤΟΝ ΑΝΑΠΝΕΥΣΤΗΡΑ'] },
+    // Ημέρες συσκευής για CLABSI/CAUTI ανά 1.000 ημέρες και τη χρήση συσκευών (ιδιοκτήτης 22/11/2026).
+    days('central_line_days', 'Ημέρες κεντρικού φλεβικού καθετήρα', 'Central line days', { section: 'stay', help: 'Οι ημέρες με κεντρικό φλεβικό καθετήρα στη ΜΕΘ· 0 αν δεν είχε. Δίνουν τον παρονομαστή του CLABSI.', helpEn: 'The days with a central line in the ICU; 0 if none. They are the CLABSI denominator.' }),
+    days('urinary_catheter_days', 'Ημέρες ουροκαθετήρα', 'Urinary catheter days', { section: 'stay', help: 'Οι ημέρες με ουροκαθετήρα στη ΜΕΘ· 0 αν δεν είχε. Δίνουν τον παρονομαστή του CAUTI.', helpEn: 'The days with a urinary catheter in the ICU; 0 if none. They are the CAUTI denominator.' }),
     yes('pressure_ulcer', 'Εμφάνιση κατάκλισης', 'Pressure ulcer developed', { section: 'stay', aliases: ['ΕΜΦΑΝΙΣΗ ΚΑΤΑΚΛΙΣΕΩΝ', 'ΚΑΤΑΚΛΙΣΕΙΣ'] }),
     yes('vap', 'VAP', 'VAP', { section: 'stay', aliases: ['VAP', 'ΥΠΑΡΧΕΙ VAP'], help: 'Θα συνδεθεί με το επεισόδιο στην Επιτήρηση.', helpEn: 'To be linked with the Surveillance episode.' }),
     yes('air_mattress', 'Αερόστρωμα', 'Air mattress', { section: 'stay', aliases: ['ΑΕΡΟΣΤΡΩΜΑ', 'ΥΠΑΡΧΕΙ ΑΕΡΟΣΤΡΩΜΑ'] }),
@@ -69,6 +74,10 @@ const ICU: RegisterTemplate = {
     share('pressure_ulcers', '% με κατάκλιση', '% pressure ulcers', [{ field: 'pressure_ulcer', op: 'yes' }], { denominatorFilters: [{ field: 'discharge_date', op: 'filled' }], dateField: 'discharge_date', direction: 'lower', note: 'Μόνο όσοι βγήκαν, στον μήνα εξόδου.', noteEn: 'Discharged patients only, in the month of discharge.' }),
     share('readmissions_48h', '% επανεισαγωγών 48ώρου', '% readmissions within 48 h', [{ field: 'readmission_48h', op: 'yes' }], { denominatorFilters: [{ field: 'readmission_48h', op: 'filled' }], direction: 'lower' }),
     count('requisitions', 'Επιτάξεις', 'Requisitioned beds', { filters: [{ field: 'requisition', op: 'yes' }] }),
+    { id: 'icu_days_total', title: 'Ημέρες ΜΕΘ (σύνολο)', titleEn: 'ICU days (total)', aggregation: 'sum', field: 'length_of_stay', filters: [{ field: 'discharge_date', op: 'filled' }], dateField: 'discharge_date', unit: 'ημέρες', unitEn: 'days', direction: 'context', note: 'Οι ημέρες νοσηλείας όσων βγήκαν, στον μήνα εξόδου.', noteEn: 'The stay days of those discharged, in the month of discharge.' },
+    deviceUse('central_line_use', 'Χρήση κεντρικού φλεβικού καθετήρα', 'Central line utilisation', 'central_line_days', 'Ημέρες ΚΦΚ', 'Central line days'),
+    deviceUse('urinary_catheter_use', 'Χρήση ουροκαθετήρα', 'Urinary catheter utilisation', 'urinary_catheter_days', 'Ημέρες ουροκαθετήρα', 'Urinary catheter days'),
+    deviceUse('ventilator_use', 'Χρήση αναπνευστήρα', 'Ventilator utilisation', 'ventilator_hours/24', 'Ημέρες αναπνευστήρα (ώρες / 24)', 'Ventilator days (hours / 24)'),
   ],
 }
 

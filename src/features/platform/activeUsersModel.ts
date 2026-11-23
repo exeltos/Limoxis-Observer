@@ -47,6 +47,8 @@ export type CheckedPerson = {
   departmentIds: string[]
   employeeId: string | null
   sendInvite: boolean
+  // Where the username comes from: the file's column, the chosen rule, or none (the server makes one).
+  usernameSource?: 'file' | 'rule' | ''
   errors: string[]
 }
 // Η απάντηση του server για μία γραμμή του ελέγχου (dryRun).
@@ -87,7 +89,8 @@ export const splitNames = (value: unknown) => [...new Set(String(value ?? '').sp
 const COLUMNS: [string, string, string, string[]][] = [
   ['fullName', 'Ονοματεπώνυμο', 'Full name', ['ονομα', 'name', 'ονοματεπωνυμο χρηστη']],
   ['email', 'Email', 'Email', ['e-mail', 'ηλεκτρονικο ταχυδρομειο']],
-  ['username', 'Όνομα χρήστη', 'Username', ['user name', 'χρηστης']],
+  // Also the headers other programs export: Windows / Active Directory, a hospital information system.
+  ['username', 'Όνομα χρήστη', 'Username', ['user name', 'χρηστης', 'login', 'login name', 'user id', 'userid', 'samaccountname', 'account name', 'κωδικος χρηστη', 'ονομα συνδεσης']],
   ['role', 'Ρόλος', 'Role', []],
   ['department', 'Τμήμα', 'Department', ['κλινικη', 'τμημα / κλινικη']],
   ['employeeCode', 'Κωδικός εργαζομένου', 'Employee code', ['κωδικος', 'code']],
@@ -135,6 +138,36 @@ export function templateSheet(en = false) {
           ['Ελένη Ιωάννου', '', 'EIoannou', 'Διευθυντής Διεύθυνσης', '', '', '6987654321', 'Νοσηλευτική Υπηρεσία', 'ΜΕΘ; Χειρουργική', ''],
         ],
   }
+}
+
+// «Όνομα χρήστη όταν λείπει» (owner, 23/11/2026): a row of the file without a username gets one by the chosen rule:
+// «Αυτόματα» leaves it to the server (initials and a number), «Κωδικός εργαζομένου» takes the employee code,
+// «Επώνυμο + αρχικό» the surname and the first name's initial in Latin letters (Παπαδοπούλου Μαρία → PapadopoulouM).
+export type UsernameRule = 'auto' | 'employeeCode' | 'surnameInitial'
+export const USERNAME_RULES: readonly UsernameRule[] = Object.freeze(['auto', 'employeeCode', 'surnameInitial'])
+const GREEK_LATIN: Record<string, string> = { α: 'a', β: 'v', γ: 'g', δ: 'd', ε: 'e', ζ: 'z', η: 'i', θ: 'th', ι: 'i', κ: 'k', λ: 'l', μ: 'm', ν: 'n', ξ: 'x', ο: 'o', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', υ: 'y', φ: 'f', χ: 'ch', ψ: 'ps', ω: 'o' }
+// Greek to Latin letters as names are usually written (ου → ou, αι → ai, ει → ei, οι → oi, μπ/ντ at the start → b/d,
+// γγ → ng), accents dropped; other characters removed.
+const GREEK_PAIRS: [RegExp, string][] = [[/ου/g, 'ou'], [/αι/g, 'ai'], [/ει/g, 'ei'], [/οι/g, 'oi'], [/^μπ/, 'b'], [/^ντ/, 'd'], [/γγ/g, 'ng']]
+export function latinize(value: unknown) {
+  let plain = String(value ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('el')
+  for (const [pattern, latin] of GREEK_PAIRS) plain = plain.replace(pattern, latin)
+  return [...plain].map(ch => GREEK_LATIN[ch] ?? (/[a-z0-9]/.test(ch) ? ch : '')).join('')
+}
+const capital = (text: string) => (text ? text[0].toUpperCase() + text.slice(1) : '')
+// The username a rule gives for a person (the full name as «Όνομα Επώνυμο»); '' when the rule cannot give one.
+export function ruleUsername(rule: string, fullName: unknown, employeeCode: unknown) {
+  if (rule === 'employeeCode') {
+    const code = String(employeeCode ?? '').trim()
+    return USERNAME.test(code) ? code : ''
+  }
+  if (rule === 'surnameInitial') {
+    const parts = String(fullName ?? '').trim().split(/\s+/).filter(Boolean)
+    if (parts.length < 2) return ''
+    const candidate = `${capital(latinize(parts[parts.length - 1]))}${latinize(parts[0]).slice(0, 1).toUpperCase()}`.slice(0, 40)
+    return USERNAME.test(candidate) ? candidate : ''
+  }
+  return ''
 }
 
 // Column index per key, from the header row (Greek or English, any case or accents).
@@ -216,7 +249,7 @@ export function markDuplicates(people: CheckedPerson[]) {
 }
 
 // The rows of the file ([header, ...rows]) as people; empty rows are left out.
-export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random', sendInvite = true, password = ''): FilePlan {
+export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[] = [], en = false, passwordMode = 'random', sendInvite = true, password = '', usernameRule: string = 'auto'): FilePlan {
   const [header = [], ...body] = rows
   const columns = mapHeaders(header)
   const missing = REQUIRED_COLUMNS.filter(key => columns[key] == null)
@@ -224,9 +257,12 @@ export function planFile(rows: unknown[][] = [], departments: DepartmentChoice[]
   if (missing.length) return { missingColumns: missing.map(key => COLUMNS.find(column => column[0] === key)![en ? 2 : 1]), people: [], tooMany: false }
   const cell = (row: unknown[], key: string) => (columns[key] == null ? '' : String(row[columns[key]] ?? '').trim())
   const filled = body.map((row, index) => ({ row, line: index + 2 })).filter(({ row }) => row.some(value => String(value ?? '').trim()))
-  const people = filled.slice(0, MAX_FILE_ROWS).map(({ row, line }) =>
-    checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: cell(row, 'username'), role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode'), phone: cell(row, 'phone'), passwordMode, divisionName: cell(row, 'division'), divisionDepartments: cell(row, 'divisionDepartments'), sendInvite, password: cell(row, 'password') || password }, departments),
-  )
+  const people = filled.slice(0, MAX_FILE_ROWS).map(({ row, line }) => {
+    const fromFile = cell(row, 'username')
+    const fromRule = fromFile ? '' : ruleUsername(usernameRule, cell(row, 'fullName'), cell(row, 'employeeCode'))
+    const person = checkPerson({ line, fullName: cell(row, 'fullName'), email: cell(row, 'email'), username: fromFile || fromRule, role: cell(row, 'role'), department: cell(row, 'department'), employeeCode: cell(row, 'employeeCode'), phone: cell(row, 'phone'), passwordMode, divisionName: cell(row, 'division'), divisionDepartments: cell(row, 'divisionDepartments'), sendInvite, password: cell(row, 'password') || password }, departments)
+    return { ...person, usernameSource: fromFile ? 'file' as const : fromRule ? 'rule' as const : '' as const }
+  })
   return { missingColumns: [], people: markDuplicates(people), tooMany: filled.length > MAX_FILE_ROWS }
 }
 

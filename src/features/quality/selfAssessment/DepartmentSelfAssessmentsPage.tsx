@@ -31,7 +31,7 @@ export function DepartmentSelfAssessmentsPage() {
       <div className="scroll-table">
         <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} loading={list.loading} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.items.length > 0}
           emptyIcon={ClipboardCheck} emptyTitle={L(en, 'Δεν υπάρχει αυτοαξιολόγηση για το τμήμα σας', 'No self-assessment for your department')} emptyText={L(en, 'Όταν το Γραφείο Ποιότητας ενεργοποιήσει μία για εσάς, θα εμφανιστεί εδώ.', 'When the Quality Office releases one to you it will appear here.')}
-          columns={[{ key: 'title', label: L(en, 'Αυτοαξιολόγηση', 'Self-assessment') }, { key: 'progress', label: L(en, 'Πρόοδος', 'Progress') }, { key: 'due', label: L(en, 'Προθεσμία', 'Due') }, { key: 'status', label: L(en, 'Κατάσταση', 'Status') }]}
+          columns={[{ key: 'title', label: L(en, 'Αυτοαξιολόγηση', 'Self-assessment'), sortValue: item => item.title }, { key: 'progress', label: L(en, 'Πρόοδος', 'Progress'), sortValue: item => (item.totalCount ? item.answeredCount / item.totalCount : null) }, { key: 'due', label: L(en, 'Προθεσμία', 'Due'), sortValue: item => item.dueOn }, { key: 'status', label: L(en, 'Κατάσταση', 'Status'), sortValue: item => item.status }]}
           rowProps={item => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => navigate(`/my-department/self-assessment/${item.id}`), onKeyDown: event => { if (event.key === 'Enter') navigate(`/my-department/self-assessment/${item.id}`) } })}
           renderRow={item => <>
             <td><strong>{item.title}</strong><small>{item.departmentName}</small></td>
