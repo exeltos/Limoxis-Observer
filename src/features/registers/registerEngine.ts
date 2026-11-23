@@ -594,3 +594,30 @@ export function keyFrom(label: unknown, taken: string[] = []) {
   while (taken.includes(key)) key = `${base}_${index++}`
   return key
 }
+
+// How many changes a definition has against the saved one («Αποθήκευση · 3 αλλαγές»): the name, the status,
+// each field or indicator added, changed or removed, their order, and each setting or part of the sheet.
+// Compared with the keys sorted, and with an empty list of breakdowns the same as none.
+const stableText = (value: unknown) => JSON.stringify(value ?? null, (_key, item) => (item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).filter(([, part]) => part !== undefined).sort(([a], [b]) => a.localeCompare(b))) : item))
+const sameValue = (a: unknown, b: unknown) => stableText(a) === stableText(b)
+const settingsOf = (register: Register) => ({ ...(register.settings || {}), breakdowns: register.settings?.breakdowns?.length ? [...register.settings.breakdowns].sort() : undefined })
+function listChanges<T>(before: T[] = [], after: T[] = [], keyOf: (item: T) => string) {
+  const saved = new Map(before.map(item => [keyOf(item), item]))
+  const now = new Map(after.map(item => [keyOf(item), item]))
+  let count = [...new Set([...saved.keys(), ...now.keys()])].filter(key => !sameValue(saved.get(key), now.get(key))).length
+  const order = (list: T[], other: Map<string, T>) => list.map(keyOf).filter(key => other.has(key))
+  if (!sameValue(order(before, now), order(after, saved))) count += 1
+  return count
+}
+function partChanges(before: object = {}, after: object = {}) {
+  const saved = before as Record<string, unknown>, now = after as Record<string, unknown>
+  return [...new Set([...Object.keys(saved), ...Object.keys(now)])].filter(key => !sameValue(saved[key], now[key])).length
+}
+export function definitionChanges(saved: Register, draft: Register) {
+  const count = (['name', 'status'] as const).filter(key => !sameValue(saved[key], draft[key])).length
+    + listChanges(saved.fields, draft.fields, field => field.key)
+    + listChanges(saved.indicators, draft.indicators, indicator => indicator.id)
+    + partChanges(settingsOf(saved), settingsOf(draft))
+    + partChanges(saved.sheet, draft.sheet)
+  return count || (sameValue({ ...saved, settings: settingsOf(saved) }, { ...draft, settings: settingsOf(draft) }) ? 0 : 1)
+}

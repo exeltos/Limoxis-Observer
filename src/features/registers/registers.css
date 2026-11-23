@@ -119,8 +119,6 @@
 /* Builder */
 .register-builder-section{display:grid;gap:8px}
 .register-builder-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.register-builder-toggle{display:inline-flex;align-items:center;gap:6px;flex:none;height:34px;padding:0 8px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
-.register-builder-toggle:hover{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
 .register-builder-section-head input{flex:1;font-weight:600}
 .register-builder-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .register-builder-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface)}
@@ -129,19 +127,7 @@
 .register-builder-list code{font-size:11px;color:var(--lo-color-muted)}
 .register-builder-tools{display:flex;gap:4px;flex-shrink:0}
 .register-builder-subtitle{margin:6px 0 0;font-size:13px}
-.register-builder-parts{flex:0 0 auto;margin:0 0 10px}
-.register-builder-table{width:100%;font-size:13px}
-.register-builder-table td{vertical-align:middle;padding-top:6px;padding-bottom:6px}
-.register-builder-table td small{display:block;font-size:11.5px;color:var(--lo-color-muted)}
-.register-builder-detail{color:var(--lo-color-muted)}
-.register-builder-tools-cell{width:1%;white-space:nowrap}
-.register-builder-tools-cell .register-builder-tools{justify-content:flex-end}
-.register-builder-table tr.is-editing>td{background:color-mix(in srgb,var(--lo-color-primary) 6%,transparent)}
-.register-builder-editor-row>td{padding:8px 0 14px}
-.register-builder-editor{display:grid;gap:10px;padding:12px;border:1px solid var(--lo-color-primary-soft,var(--lo-color-border));border-radius:10px;background:var(--lo-color-surface)}
-.register-builder-editor>header h4{margin:0;font-size:14px}
-.register-builder-editor>header small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:12px}
-.register-axis-fields{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;align-items:center;flex:1}
+.register-axis-fields,.register-builder-list li>span.register-axis-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;align-items:center;flex:1}
 .register-filter-rows{display:grid;gap:8px}
 .register-filter-row{display:grid;grid-template-columns:minmax(150px,2fr) minmax(130px,1.4fr) minmax(110px,1.4fr) auto;gap:6px;align-items:center}
 
@@ -262,7 +248,7 @@
 
 /* In the definition the checkboxes sit on the same line as the controls beside them. */
 .register-builder .lo-form-grid:has(>.lo-checkbox-field){align-items:end}
-.register-builder-checks{display:grid;gap:4px;grid-column:span 2;align-content:start}
+.register-builder-checks{display:grid;gap:4px;grid-column:1/-1;align-content:start}
 .register-builder-checks-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 32px;min-height:40px}
 
 /* One section: no side index, the page takes the whole width. */
@@ -326,3 +312,69 @@
 /* ΜΕΝΝ: a neonate's late-onset blood culture waiting for a decision (owner, 19/11/2026). */
 .register-late-hint{display:flex;align-items:center;gap:10px}
 .register-late-hint>span{flex:1 1 auto}
+
+/* The definition (owner, 23/11/2026): its parts right under the record's tabs on one surface; sections as bands like
+   the audit chapters; each row a handle, its name, its type as a chip and a «⋯» at its right; the save bar only with changes. */
+.register-def-tabs{flex:0 0 auto;padding:2px 16px 0}
+.register-def-body{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:14px;padding:12px 16px 18px}
+.register-def-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px}
+.register-def-toolbar>p{display:grid;gap:2px;flex:1 1 300px;margin:0;font-size:12.5px;line-height:1.45;color:var(--lo-color-muted)}
+.register-def-toolbar>p small{font-size:12px}
+.register-def-toolbar>div{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-left:auto}
+/* The record panel gives its tables 720px at least; the definition's fit a tablet without a sideways scroll. */
+.register-builder .data-table.register-def-table{min-width:0!important;width:100%;font-size:13px}
+.register-def-table td{vertical-align:middle;padding-top:7px;padding-bottom:7px}
+.register-def-table td>small{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
+.register-def-band>th{padding:0;background:var(--surface-neutral-969-2);border-top:1px solid var(--border-faint);border-bottom:1px solid var(--border-faint);text-align:left;text-transform:none;letter-spacing:.01em}
+.register-def-band.is-drop>th{box-shadow:inset 0 -2px 0 var(--lo-color-primary)}
+.register-def-band-row{display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px}
+.register-def-band-toggle{display:inline-flex;align-items:center;gap:8px;flex:1;min-width:0;min-height:34px;padding:0 8px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--text-neutral-341);text-align:left;cursor:pointer}
+.register-def-band-toggle:hover{color:var(--lo-color-primary)}
+.register-def-band-toggle>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.register-def-band-toggle>small{flex:none;padding:1px 8px;border-radius:999px;background:var(--lo-status-neutral-bg);color:var(--lo-status-neutral-fg);font-size:11px;font-weight:700}
+.register-def-band-tools{display:flex;align-items:center;gap:4px;flex:none}
+.register-def-band-tools>.button{height:32px;min-height:32px;padding:0 10px;font-size:12.5px}
+.register-def-grip-cell,.register-def-menu-cell{width:1%;white-space:nowrap}
+.register-def-menu-cell{text-align:right}
+.register-def-grip{display:inline-grid;place-items:center;width:24px;height:30px;border-radius:6px;color:var(--lo-color-muted);cursor:grab}
+.register-def-grip:hover{background:var(--lo-color-surface-muted);color:var(--lo-color-text)}
+.register-def-row.is-dragging{opacity:.45}
+.register-def-row.is-drop-before>td{box-shadow:inset 0 2px 0 var(--lo-color-primary)}
+.register-def-row.is-drop-after>td{box-shadow:inset 0 -2px 0 var(--lo-color-primary)}
+.register-def-empty>td{padding:12px 16px;color:var(--lo-color-muted);font-size:12.5px}
+.register-def-chip{display:inline-flex;align-items:center;padding:2px 10px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-muted);font-size:12px;font-weight:600;white-space:nowrap;color:var(--lo-color-text)}
+.register-def-detail{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--lo-color-muted)}
+.register-def-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;background:var(--lo-status-info-bg);color:var(--lo-color-primary);font-size:11.5px;font-weight:650;white-space:nowrap}
+.register-def-badge.is-limit{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.register-def-better{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.register-def-value{display:inline-grid;justify-items:end;gap:1px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.register-def-value strong{font-size:13.5px}
+.register-def-value.is-breach strong{color:var(--lo-status-danger-fg)}
+.register-def-value.is-attention strong{color:var(--lo-status-warning-fg)}
+.register-def-value.is-onTarget strong{color:var(--lo-status-success-fg)}
+.register-def-ratio{font-size:11px;color:var(--lo-color-muted)}
+.register-builder>.register-def-savebar{justify-content:flex-end}
+.register-def-basics{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.5fr);gap:14px 18px;align-items:start}
+/* The name box as tall as the choices beside it (owner, 23/11/2026). */
+.register-def-basics>.field input{height:40px;box-sizing:border-box}
+.register-def-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.register-def-summary>section{display:grid;align-content:start;gap:6px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.register-def-summary h4{margin:0;font-size:12px;font-weight:700;color:var(--lo-color-muted)}
+.register-def-summary>section>strong{font-size:24px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.register-def-summary p{margin:0;font-size:12.5px;line-height:1.45;color:var(--lo-color-muted)}
+.register-def-summary p.is-warning{color:var(--lo-status-warning-fg);font-weight:600}
+.register-def-summary ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:12.5px}
+.register-def-summary li{display:flex;justify-content:space-between;gap:8px}
+.register-def-summary li b{font-variant-numeric:tabular-nums}
+.register-def-summary li.is-total{margin-top:3px;padding-top:4px;border-top:1px solid var(--border-faint);font-weight:650}
+.register-def-dialog footer{align-items:center}
+.register-def-dialog-note{margin-right:auto;font-size:12px;color:var(--lo-color-muted)}
+.register-def-live{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:12px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface-muted);font-size:12.5px;color:var(--lo-color-muted)}
+.register-def-live .register-def-value{justify-items:start}
+.register-def-live .register-def-value strong{font-size:18px}
+.register-def-preview{display:grid;gap:14px}
+@media(max-width:1100px){
+  .register-def-basics{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .register-def-basics>:first-child{grid-column:1/-1}
+  .register-def-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
