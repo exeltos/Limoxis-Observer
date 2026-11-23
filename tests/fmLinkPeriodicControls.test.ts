@@ -24,3 +24,15 @@ describe('FileMaker periodic controls linked 23/11/2026 (ΙΑΣΩ Θεσσαλί
     expect(sql).toContain("not ilike '%ναρκωτικ%'")
   })
 })
+
+describe('FileMaker controls created 23/11/2026 (ΙΑΣΩ Θεσσαλίας, owner OK)', () => {
+  const created = readSource('supabase/migrations/20261231634000_fm_create_three_controls.sql').replace(/^\s*--.*$/gm, '')
+  it('creates only the 3 controls the platform did not have, once, and links them', () => {
+    expect(created).not.toMatch(/\b(drop|delete|revoke|truncate|alter\s+policy|update)\b/i)
+    for (const code of ['FM-CTRL-0011', 'FM-CTRL-1242', 'FM-CTRL-1380']) expect(created).toContain(`'${code}'`)
+    for (const department of ['ΜΕΘ', 'ΤΕΠ', 'Χειρουργεία']) expect(created).toContain(`'${department}')`)
+    expect(created).toContain('where not exists (select 1 from public.control_definitions x')
+    expect(created).toContain("'created from FileMaker (23/11/2026)'")
+    expect(created).toContain('select private.fm_sync_controls();')
+  })
+})
