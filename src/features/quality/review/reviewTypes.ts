@@ -120,7 +120,7 @@ export interface CommitteeTarget {
 
 // An objective with what useObjectives adds: its register, indicator or platform indicator, its months and its value today.
 export interface ObjectiveView extends Objective {
-  kind?: undefined
+  kind?: 'objective'
   committeeName?: undefined
   register?: Register
   indicator?: RegisterIndicator
