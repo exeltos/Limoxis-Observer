@@ -2,5 +2,14 @@
   "takenAt": "2026-11-23",
   "organization": "Demo Νοσοκομείο (9fdc7fb5-c514-41c0-8fac-0b39ba0c8735)",
   "source": "docs/sql/demo_snapshot_counts.sql",
-  "counts": { "departments": 12, "employees": 106, "patients": 57 }
+  "counts": {
+    "departments": 12,
+    "employees": 106,
+    "patients": 57,
+    "employee_vaccinations": 292,
+    "employee_certificates": 255,
+    "employee_evaluations": 202,
+    "patient_admissions": 58,
+    "laboratory_samples": 82
+  }
 }
