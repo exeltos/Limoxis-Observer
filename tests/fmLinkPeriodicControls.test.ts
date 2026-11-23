@@ -14,7 +14,7 @@ describe('FileMaker periodic controls linked 23/11/2026 (ΙΑΣΩ Θεσσαλί
   })
 
   it('links 28 controls through the FileMaker department link, never the narcotics check', () => {
-    const rows = sql.match(/\('\d+','FM-CTRL-\d{4}'\)/g) ?? []
+    const rows: string[] = sql.match(/\('\d+','FM-CTRL-\d{4}'\)/g) ?? []
     expect(rows).toHaveLength(28)
     // The pneumatic tube disinfection: one platform control with an assignment per department.
     expect(rows.filter(row => row.includes('FM-CTRL-1341'))).toHaveLength(15)
