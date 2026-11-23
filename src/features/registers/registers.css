@@ -355,6 +355,8 @@
 .register-def-ratio{font-size:11px;color:var(--lo-color-muted)}
 .register-builder>.register-def-savebar{justify-content:flex-end}
 .register-def-basics{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.5fr);gap:14px 18px;align-items:start}
+/* The name box as tall as the choices beside it (owner, 23/11/2026). */
+.register-def-basics>.field input{height:40px;box-sizing:border-box}
 .register-def-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .register-def-summary>section{display:grid;align-content:start;gap:6px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
 .register-def-summary h4{margin:0;font-size:12px;font-weight:700;color:var(--lo-color-muted)}
