@@ -50,9 +50,11 @@ describe('the preview matches the real Demo', () => {
     expect(indicatorSnapshotRows.length).toBe(115)
     expect(counts.indicator_snapshots - indicatorSnapshotRows.length).toBeLessThanOrEqual(3)
   })
-  // Known gap: the preview has fewer antibiotic dispensing periods than the Demo (114 / 360).
-  it('antibiotic dispensing periods: the gap is pinned (114 / 360)', () => {
+  // A difference of shape, kept on purpose: the Demo has 6 months x 12 departments x 5 agents (360); the preview has
+  // 24 months of each ward's main agents (114), for the falling carbapenem trend of the stewardship charts.
+  it('antibiotic dispensing periods: the preview keeps 24 months of main agents (114 / 360)', () => {
     expect(antibioticDispensingRows.length).toBe(114)
-    expect(counts.antibiotic_dispensing_periods).toBeGreaterThan(antibioticDispensingRows.length)
+    expect(new Set(antibioticDispensingRows.map((row) => row.period)).size).toBeGreaterThanOrEqual(12)
+    expect(counts.antibiotic_dispensing_periods).toBe(360)
   })
 })
