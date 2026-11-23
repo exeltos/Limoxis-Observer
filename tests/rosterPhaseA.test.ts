@@ -85,7 +85,7 @@ describe('the ICU roster', () => {
     }
   })
   it('the engine compares by levels, not by one sum', () => {
-    const engine = readSource('src/features/rosters/rosterEngine.ts')
+    const engine = readSource('src/features/rosters/rosterEngine.ts') + readSource('src/features/rosters/rosterScore.ts')
     expect(engine).toContain('export const rank = (score: Score) => [score[0], score[1],')
     expect(engine).toContain('if (x[0] !== y[0] || x[1] !== y[1]) return false')
   })
