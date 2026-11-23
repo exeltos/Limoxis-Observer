@@ -107,7 +107,7 @@ for (const size of ['desktop', 'tablet']) {
     await shot('e-sample-request-mini')
   })
   // The list with the grey reminder.
-  await session(size, 'infection_control_lead', async ({ page, app, open, shot }) => {
+  await session(size, 'infection_control_lead', async ({ page, open, shot }) => {
     await open('/surveillance')
     await page.waitForTimeout(800)
     await shot('f-list-reminder')

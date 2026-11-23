@@ -38,7 +38,6 @@ for (let i = decls.length - 1; i >= 0; i--) {
   const killable = later && later.rule !== d.node.parent && !/^-(webkit|moz|ms|o)-/.test(d.node.value) && (!d.imp || later.imp)
   if (killable) { d.node.remove(); dead++ }
   if (!later || (d.imp && !later.imp)) seen.set(k, { imp: d.imp || !!later?.imp, rule: d.node.parent ?? later?.rule })
-  else if (!later.imp && d.imp) later.imp = true
 }
 let emptied = 0
 for (const { ast } of asts) {

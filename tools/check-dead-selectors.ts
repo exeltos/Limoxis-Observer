@@ -9,7 +9,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import postcss from 'postcss'
-const root = ''
 const dist = process.argv.find(arg => !arg.startsWith('-') && arg !== process.argv[0] && arg !== process.argv[1]) || 'dist'
 if (!fs.existsSync(dist + '/index.html')) { console.error(`No build found in ${dist}: run npm run build`); process.exit(2) }
 const write = process.argv.includes('--write')
@@ -45,7 +44,8 @@ function splitTop(list) { const out = []; let depth = 0, cur = ''; for (const ch
 // classes/ids required by a selector part: only outside functional pseudo-classes
 // (:not/:is/:where/:has arguments are skipped), outside attribute brackets.
 function required(part) {
-  let depth = 0, out = [], i = 0
+  const out = []
+  let depth = 0, i = 0
   while (i < part.length) {
     const ch = part[i]
     if (ch === '(' ) { depth++; i++; continue }

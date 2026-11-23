@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { readSource } from './readSource.ts'
 
 const files=[
