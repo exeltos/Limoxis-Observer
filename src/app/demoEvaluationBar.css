@@ -11,7 +11,8 @@
 .demo-evaluation-bar button.demo-evaluation-cta:hover{background:var(--surface-brand-200)}
 .demo-evaluation-bar.is-ending{background:var(--surface-warning-943);border-bottom-color:var(--border-warning-816-2)}
 .demo-evaluation-bar.is-ending .demo-evaluation-text{color:var(--text-warning-318);font-weight:700}
-.demo-evaluation-roles{position:relative;z-index:30}
+/* Above the page, below the topbar (z-index 10): the user menu opens over it (owner, 23/11/2026). */
+.demo-evaluation-roles{position:relative;z-index:9}
 .demo-evaluation-roles .role-preview-popover{top:36px;color:var(--text,var(--text-brand-222-3));font-size:12px}
 @media(max-width:720px){.demo-evaluation-spacer{display:none}}
 

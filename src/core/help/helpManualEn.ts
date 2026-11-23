@@ -159,7 +159,7 @@ export const helpManualEn: HelpBook={
   ['Limits','LIRA does not bypass permissions and does not autonomously change clinical or administrative records.']
  ],steps:['Ask a specific operational question.','Review the information and source context.','Open the underlying record before taking a critical action.'],preview:'lira'},
  '/management':{title:'Management Center',summary:'Organization, users, roles, reference lists and governed configuration.',audience:'Hospital Admin and explicitly authorized administrators',chapters:[
-  ['Organization & users','Manage hospital identity, user accounts and activation.'],
+  ['Organization & users','Manage hospital identity, user accounts and activation. In the user list the Access column shows on top whether the account is active and beneath it the password: “Temporary password · expires” with the date (not signed in yet), “Own password” or “Locked” (the temporary one expired unused; the Platform Owner gives a new one). The totals above the list filter it with one click.'],
   ['Roles & permissions','Permissions define View/Create/Edit/Complete/Approve/Delete/Export/Assign/Manage and must align with backend enforcement.'],
   ['Lists & settings','Departments, organisms, antimicrobials and other shared values are managed centrally.'],
   ['Core content','Hospital changes to core definitions use controlled override/hide patterns where required instead of destroying baseline content.'],

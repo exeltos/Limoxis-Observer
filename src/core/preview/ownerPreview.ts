@@ -42,6 +42,10 @@ export const previewPlatformMembers=()=>Object.entries(PEOPLE).flatMap(([orgId,l
 
 export const previewOrganizationMembers=(organizationId: string | null | undefined)=>(PEOPLE[organizationId as string]||[]).map(([role,status,name,username,jobTitle],index)=>({id:`m-${organizationId!.slice(-1)}-${index}`,userId:`u-${organizationId!.slice(-1)}-${index}`,role,status,username,name,email:`${username}@example.org`,phone:'',jobTitle,invitationStatus:status==='invited'?'pending':'accepted',invitationCreatedAt:status==='invited'?at(-2):null,invitationExpiresAt:status==='invited'?at(5):null,createdAt:day(-200+index*9)}))
 
+// Where each member's password stands and the department, for the preview of «Χρήστες» (owner, 23/11/2026).
+export const previewMemberAccess=(organizationId: string | null | undefined)=>new Map(previewOrganizationMembers(organizationId).map((m,index)=>[m.userId,{mustChange:index%4===1||index%4===3,expiresAt:index%4===1?at(5):at(-2),lockedAt:index%4===3?at(-1):null,lastSignInAt:index%4===0||index%4===2?at(-1):null}]))
+export const previewMemberDepartments=(organizationId: string | null | undefined)=>previewOrganizationMembers(organizationId).map((m,index)=>({membership_id:m.id,department_id:`d-${index%4}`,department_name:['ΜΕΘ','Παθολογική','Χειρουργική','Εργαστήριο'][index%4]}))
+
 export const previewDemos=()=>[
  {id:'demo-1',label:'Γ.Ν. Λάρισας — αξιολόγηση',contact_name:'Δρ. Αθηνά Κ.',contact_email:'athina@larisa.example',valid_from:day(-20),valid_until:day(10),status:'active',organization_id:'demo-org-1',demo_user_id:'demo-u-1',organization:{id:'demo-org-1',name:'Demo · Γ.Ν. Λάρισας',code:'DEMO-LAR',is_demo:true}},
  {id:'demo-2',label:'Ιδιωτική κλινική Πάτρας',contact_name:'Ιωάννα Μ.',contact_email:'ioanna@patra.example',valid_from:day(-28),valid_until:day(2),status:'active',organization_id:'demo-org-2',demo_user_id:'demo-u-2',organization:{id:'demo-org-2',name:'Demo · Κλινική Πάτρας',code:'DEMO-PAT',is_demo:true}},

@@ -11,6 +11,7 @@ import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { BulkAccountsPanel } from './BulkAccountsPanel'
 import { ActiveUsersDialog } from './ActiveUsersDialog'
 import { latestSessionByUser } from './platformOverviewShared'
+import { AccessCell, accessCounts, passwordState, passwordStateLabel } from './memberAccess'
 import { USER_STATE_BADGE, UserNameCell, lastSignInContent, userStateLabel } from './PlatformUserCells'
 import type { OrganizationMember, OrganizationUsersContext } from './platformOrganizationShared'
 
@@ -27,9 +28,13 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
   // The latest sign-in of each user (last 90 days): when and from which IP.
   const latest = latestSessionByUser(sessions)
   // The totals beside the search, as on «Χρήστες πλατφόρμας»: each one filters the list; a second click clears it.
-  const counts = users.reduce((acc: Record<string, number>, user: OrganizationMember) => { const state = orgUserState(user); if (state === 'active') acc.active += 1; if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineUserIds.has(user.userId)) acc.online += 1; return acc }, { active: 0, invited: 0, inactive: 0, online: 0 })
+  // The totals above the list (owner, 23/11/2026, as in Sergi Tracker): who is signed in now and where each
+  // password stands; invitations and suspended accounts only when there are any. Each one filters the list; a second click clears it.
+  const invitedIds = new Set(users.filter((user: OrganizationMember) => user.status === 'invited').map((user: OrganizationMember) => user.userId))
+  const access = accessCounts(users.map((user: OrganizationMember) => user.userId), new Map(users.flatMap((user: OrganizationMember) => (user.access ? [[user.userId, user.access] as const] : []))), onlineUserIds, invitedIds)
+  const counts = users.reduce((acc: Record<string, number>, user: OrganizationMember) => { const state = orgUserState(user); if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; return acc }, { invited: 0, inactive: 0 })
   const toggleFilter = (key: string) => setUserFilter(current => (current === key ? 'all' : key))
-  const totals = ([['active', tx('ενεργοί', 'active'), counts.active, undefined, true], ['online', tx('συνδεδεμένοι τώρα', 'online now'), counts.online, 'good'], ['invited', tx('εκκρεμείς προσκλήσεις', 'pending invitations'), counts.invited, 'warning'], ['inactive', tx('ανενεργοί', 'inactive'), counts.inactive, 'danger']] satisfies TotalRow[]).map(([key, label, value, tone, always]) => ({ key, label, value, always, tone: value ? tone : undefined, active: userFilter === key, onClick: () => toggleFilter(key) }))
+  const totals = ([['online', tx('συνδεδεμένοι τώρα', 'online now'), access.online, 'good', true], ['temporary', tx('προσωρινός κωδικός', 'temporary password'), access.temporary, 'warning', true], ['own', tx('δικός τους κωδικός', 'own password'), access.own, 'good', true], ['locked', tx('κλειδωμένοι', 'locked'), access.locked, 'danger', true], ['invited', tx('εκκρεμείς προσκλήσεις', 'pending invitations'), counts.invited, 'warning'], ['inactive', tx('ανενεργοί', 'inactive'), counts.inactive, 'danger']] satisfies TotalRow[]).map(([key, label, value, tone, always]) => ({ key, label, value, always, tone: value ? tone : undefined, active: userFilter === key, onClick: () => toggleFilter(key) }))
   // Short labels with the count as a small number; the full text stays as the name and tooltip.
   const viewSwitch = (
     <ModeSwitch
@@ -59,20 +64,24 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
                             'Username',
                             'Email',
                             tx('Θέση', 'Job title'),
+                            tx('Τμήμα', 'Department'),
                             tx('Ρόλος', 'Role'),
                             tx('Κατάσταση', 'Status'),
+                            tx('Κωδικός', 'Password'),
                           ],
                           rows: users.map((user: OrganizationMember) => [
                             user.name,
                             user.username,
                             user.email,
                             user.jobTitle,
+                            user.departmentName || '',
                             roleLabel(user.role, language),
                             user.status === 'active'
                               ? tx('Ενεργός', 'Active')
                               : user.status === 'disabled'
                                 ? tx('Σε παύση', 'Suspended')
                                 : tx('Εκκρεμής', 'Pending'),
+                            (() => { const state = passwordState(user.access, user.status === 'invited'); return state ? passwordStateLabel(tx, state, user.access) : '' })(),
                           ]),
                         }),
                     },
@@ -139,9 +148,10 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
                         <tr>
                           <th>{tx('Χρήστης', 'User')}</th>
                           <th>{tx('Όνομα χρήστη', 'Username')}</th>
+                          <th>{tx('Τμήμα', 'Department')}</th>
                           <th>{tx('Ρόλος', 'Role')}</th>
                           <th>{tx('Τελευταία σύνδεση', 'Last sign-in')}</th>
-                          <th>{tx('Κατάσταση', 'Status')}</th>
+                          <th>{tx('Πρόσβαση', 'Access')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -160,9 +170,10 @@ export function PlatformOrganizationUsersTab({ ctx }: { ctx: OrganizationUsersCo
                           >
                             <td><UserNameCell name={user.name} email={user.email} online={onlineUserIds.has(user.userId)} tx={tx} /></td>
                             <td>{user.username && user.username !== '—' ? <code>{user.username}</code> : '—'}</td>
+                            <td>{user.departmentName || '—'}</td>
                             <td>{roleLabel(user.role, language)}</td>
                             <td className="platform-users-last">{lastSignInContent(latest.get(user.userId), onlineUserIds.has(user.userId), tx)}</td>
-                            <td><span className={`status-badge ${USER_STATE_BADGE[orgUserState(user)]}`}>{userStateLabel(tx, orgUserState(user))}</span></td>
+                            <td><AccessCell stateLabel={userStateLabel(tx, orgUserState(user))} stateTone={USER_STATE_BADGE[orgUserState(user)]} access={user.access} invited={user.status === 'invited'} tx={tx} /></td>
                           </tr>
                         ))}
                       </tbody>

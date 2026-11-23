@@ -1,0 +1,8 @@
+/* «Πρόσβαση» of a user list (owner, 23/11/2026): the account state with a dot, the password state beneath it. */
+.member-access{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.member-access-state{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--lo-color-text)}
+.member-access-state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--lo-color-muted)}
+.member-access-state.is-active::before{background:var(--lo-status-success-fg)}
+.member-access-state.is-temporary::before,.member-access-state.is-warning::before{background:var(--lo-status-warning-fg)}
+.member-access-state.is-danger::before{background:var(--lo-status-danger-fg)}
+.member-access-password{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
