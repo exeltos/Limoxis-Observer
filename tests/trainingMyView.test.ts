@@ -177,7 +177,7 @@ describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω ν
   // The training office's resolution: the owner's department for a person, the owner as written otherwise.
   const organizers = programOrganizerMap(hospital.programs, [{ firstName: 'Ελένη', lastName: 'Κ.', name: 'Δρ. Ελένη Κ.', department: 'ΜΕΘ' }])
 
-  it('«Του τμήματός μου» keeps only what the department organised; not the audience, the whole hospital or its participants', () => {
+  it('«Του τμήματός μου» keeps what the department organised or attended (owner, 23/11/2026); not the audience or the whole hospital', () => {
     // The organiser department of a department training, by id.
     expect(programOrganisedByDepartment(hospital.programs[0], icu, organizers)).toBe(true)
     expect(programOrganisedByDepartment(hospital.programs[0], surgery, organizers)).toBe(false)
@@ -189,8 +189,10 @@ describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω ν
     expect(programOrganisedByDepartment(hospital.programs[2], icu, organizers)).toBe(false)
     expect(programOrganisedByDepartment(hospital.programs[1], medicine, organizers)).toBe(false)
     expect(hospitalProgramRows(hospital, me, today, { department: surgery, participation: counts, organizers }).map(row => row.id)).toEqual(['P5'])
-    expect(hospitalProgramRows(hospital, me, today, { department: icu, participation: counts, organizers }).map(row => row.id)).toEqual(['P2', 'P1'])
-    expect(hospitalProgramRows(hospital, me, today, { department: medicine, participation: counts, organizers }).map(row => row.id)).toEqual([])
+    // P3 is organised by the infection prevention team but has ICU participants: the ICU attended it.
+    expect(hospitalProgramRows(hospital, me, today, { department: icu, participation: counts, organizers }).map(row => row.id)).toEqual(['P2', 'P1', 'P3'])
+    // Medicine organised nothing but has a participant in P2.
+    expect(hospitalProgramRows(hospital, me, today, { department: medicine, participation: counts, organizers }).map(row => row.id)).toEqual(['P2'])
     expect(hospitalProgramRows(hospital, me, today, { participation: counts, organizers }).map(row => row.id)).toEqual(['P2', 'P1', 'P5', 'P3'])
   })
 
@@ -270,5 +272,13 @@ describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω ν
     expect(service).toContain("rpc('training_program_participation',{p_organization_id:organizationId})")
     // The Demo keeps its requests in the sample state, never in the database.
     expect(service).toContain('if(isDemoDataEnvironment())return demoRequests(loadTrainingState())')
+  })
+})
+
+describe('training numbers for the Platform Owner (owner, 23/11/2026)', () => {
+  it('lets the Platform Owner read participation and organisers in a role preview, nothing else changes', () => {
+    const sql = readSource('supabase/migrations/20261231630000_training_numbers_platform_owner.sql')
+    expect(sql.match(/if not public\.current_user_is_platform_owner\(\)\n     and not exists \(select 1 from public\.organization_members om/g)).toHaveLength(2)
+    expect(sql).not.toMatch(/^\s*(drop|revoke|delete|alter policy)\b/im)
   })
 })

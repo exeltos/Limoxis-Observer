@@ -78,7 +78,7 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
  const programDetail=(program: TrainingProgram|null|undefined)=>[program?.category?trainingCategoryLabel(program.category,language):'',program?.deliveryKind?trainingDeliveryKindLabel(program.deliveryKind,language):program?.method?trainingMethodLabel(program.method,language):''].filter(part=>part&&part!=='—').join(' · ')
  const detailOf=(row: TrainingMyRow)=>programDetail(row.program)
  const filtered=useMemo(()=>filterTrainingRows(rows,status).filter(row=>matchesSearch(query,[row.title,row.department,detailOf(row)])),[rows,status,query])// eslint-disable-line react-hooks/exhaustive-deps
- // The programmes: those the chosen department organised, or of the whole hospital.
+ // The programmes: those the chosen department organised or attended (owner, 23/11/2026), or of the whole hospital.
  const department=departmentList.find(item=>item.id===departmentId)||null
  // In a hospital the numbers come only from the database (the assignments the user reads are limited by RLS, so they
  // are never counted as totals); until they arrive, or when they fail, the column shows «—». The Demo counts its own.
@@ -137,7 +137,7 @@ export function TrainingMyView({state,language,managerView,isDemo,organizationId
  const columns=[{key:'title',label:tr('Εκπαίδευση','Training')},{key:'due',label:tr('Προθεσμία','Due')},{key:'status',label:tr('Κατάσταση','Status')},{key:'result',label:tr('Αποτέλεσμα','Result')},{key:'certificate',label:tr('Πιστοποιητικό','Certificate')},{key:'action',label:'',ariaLabel:tr('Ενέργεια','Action')}]
  const programColumns=[{key:'title',label:tr('Εκπαίδευση','Training')},{key:'period',label:tr('Περίοδος','Period')},{key:'organizer',label:tr('Διοργάνωση','Organised by')},{key:'audience',label:tr('Απευθύνεται σε','Intended for')},{key:'participation',label:department?tr('Συμμετοχή τμήματος','Department participation'):tr('Συμμετοχή','Participation')},{key:'status',label:tr('Κατάσταση','Status')},{key:'me',label:tr('Εγώ','Me')}]
  const programEmpty=state.programs.length?tr('Κανένα πρόγραμμα σε αυτή την επιλογή.','No programme in this choice.'):tr('Δεν υπάρχουν προγράμματα εκπαίδευσης στο νοσοκομείο.','No training programmes in the hospital.')
- const subtitle=mine?tr('Οι εκπαιδεύσεις σας, οι προθεσμίες και τα πιστοποιητικά σας.','Your trainings, deadlines and certificates.'):department?(en?`The training programmes organised by ${department.nameEn||department.name}.`:`Τα προγράμματα εκπαίδευσης που διοργάνωσε το τμήμα ${department.name}.`):tr('Τα προγράμματα εκπαίδευσης του νοσοκομείου.','The hospital’s training programmes.')
+ const subtitle=mine?tr('Οι εκπαιδεύσεις σας, οι προθεσμίες και τα πιστοποιητικά σας.','Your trainings, deadlines and certificates.'):department?(en?`The training programmes organised or attended by ${department.nameEn||department.name}.`:`Τα προγράμματα εκπαίδευσης που διοργάνωσε ή παρακολούθησε το τμήμα ${department.name}.`):tr('Τα προγράμματα εκπαίδευσης του νοσοκομείου.','The hospital’s training programmes.')
  const emptyTitle=rows.length?tr('Καμία εκπαίδευση σε αυτή την επιλογή.','No training in this choice.'):tr('Δεν σας έχει ανατεθεί εκπαίδευση.','No training is assigned to you.')
  const statusLabel: Record<TrainingProgramFilter, string>={current:tr('Τρέχοντα','Current'),planned:tr('Προγραμματισμένα','Planned'),completed:tr('Ολοκληρωμένα','Completed'),all:tr('Όλα','All')}
  const departmentName=(item: TrainingDepartment)=>en&&item.nameEn?item.nameEn:item.name
