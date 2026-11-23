@@ -128,7 +128,7 @@ function scoreOf(state: BuildState): Score {
       const startsHere = i === 0 || !isLeave(s.codes[i - 1])
       const endsHere = i === days.length - 1 || !isLeave(s.codes[i + 1])
       for (const k of [startsHere && i - 1, startsHere && i - 2, endsHere && i + 1, endsHere && i + 2]) {
-        if (k === false || k < 0 || k >= days.length || s.locked[k]) continue
+        if (typeof k !== 'number' || k < 0 || k >= days.length || s.locked[k]) continue
         if (isShift(s.codes[k])) L[4] += 300
       }
     }

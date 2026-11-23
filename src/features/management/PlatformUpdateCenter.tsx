@@ -44,7 +44,7 @@ export function PlatformUpdateCenter({language='el',pending=[],history=[],change
 
    <section className="puc-section">
     <header><h4>{c.changesTitle}</h4>{pending.length>0&&<p>{c.changesHint}</p>}</header>
-    {pending.length?<div className="puc-changes">{pending.map(item=>{const source=item.source||{};const deferred=item.review_status==='deferred';return <article key={item.id} className={`puc-change${deferred?' is-deferred':''}`}>
+    {pending.length?<div className="puc-changes">{pending.map(item=>{const source: Partial<NonNullable<typeof item.source>>=item.source||{};const deferred=item.review_status==='deferred';return <article key={item.id} className={`puc-change${deferred?' is-deferred':''}`}>
      <div className="puc-change-main">
       <div className="puc-change-title"><strong>{source.name||source.authority||'—'}</strong>{deferred&&<span className="puc-badge">{c.deferredBadge}</span>}</div>
       <div className="puc-change-meta">{source.authority&&<span className="puc-chip">{source.authority}</span>}{source.current_version&&<span className="puc-chip">{source.current_version}</span>}<span>{c.detected}: {fmt(item.checked_at)}</span></div>
@@ -62,7 +62,7 @@ export function PlatformUpdateCenter({language='el',pending=[],history=[],change
      <div className="puc-run-main"><strong>{fmt(run.started_at)}</strong><span>{run.trigger==='scheduled'?c.automatic:c.manual}{seconds?` · ${seconds} ${c.seconds}`:''}</span>{tone==='fail'&&<small title={error||undefined}>{c.failedNote}</small>}</div>
      <div className="puc-run-counts"><span>{c.sourcesN(run.checked_count||0)}</span>{run.changed_count?<button type="button" className="has-changes" aria-expanded={open} aria-controls={`puc-run-changes-${run.id}`} title={open?c.hideChanges:c.showChanges} onClick={()=>setOpenRun(open?null:run.id)}>{c.changesN(run.changed_count)}<ChevronDown size={13} aria-hidden="true"/></button>:<span>{c.changesN(0)}</span>}</div>
      <span className={`puc-status is-${tone}`}>{label}</span>
-     {open&&<div className="puc-run-changes" id={`puc-run-changes-${run.id}`}><strong>{c.changesOfRun}</strong>{found.length?<ul>{found.map(item=>{const source=item.source||{};const state=item.review_status==='approved'?['ok',`${c.reviewedOn} ${fmt(item.reviewed_at)}`]:item.review_status==='deferred'?['deferred',`${c.deferredOn} ${fmt(item.reviewed_at)}`]:['pending',c.pendingReview];return <li key={item.id}>
+     {open&&<div className="puc-run-changes" id={`puc-run-changes-${run.id}`}><strong>{c.changesOfRun}</strong>{found.length?<ul>{found.map(item=>{const source: Partial<NonNullable<typeof item.source>>=item.source||{};const state=item.review_status==='approved'?['ok',`${c.reviewedOn} ${fmt(item.reviewed_at)}`]:item.review_status==='deferred'?['deferred',`${c.deferredOn} ${fmt(item.reviewed_at)}`]:['pending',c.pendingReview];return <li key={item.id}>
       <div><span className="puc-run-change-name">{source.name||source.authority||'—'}</span>{source.authority&&source.name&&<small>{source.authority}</small>}</div>
       <span className={`puc-review is-${state[0]}`}>{state[1]}</span>
       {source.source_url&&<a className="puc-link" href={source.source_url} target="_blank" rel="noopener noreferrer"><ExternalLink size={13}/>{c.openSource}</a>}
