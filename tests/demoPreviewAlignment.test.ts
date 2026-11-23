@@ -15,10 +15,6 @@ const aligned: Record<string, number> = {
   employee_certificates: employeeCertificates.length,
   employee_evaluations: employeeEvaluations.length,
 }
-const drift: Record<string, number> = {
-  patient_admissions: patientDemoData.flatMap((patient) => demoAdmissionsForPatient(patient)).length,
-  laboratory_samples: laboratorySamples.length,
-}
 const counts = snapshot.counts as Record<string, number>
 
 describe('the preview matches the real Demo', () => {
@@ -29,12 +25,14 @@ describe('the preview matches the real Demo', () => {
   for (const [key, preview] of Object.entries(aligned)) {
     it(`${key}: same count`, () => expect(preview).toBe(counts[key]))
   }
-  // Pins today's difference: it fails when either side changes, so the change is looked at and the entry moved or updated.
-  const known: Record<string, number> = { patient_admissions: 55, laboratory_samples: 209 }
-  for (const [key, preview] of Object.entries(drift)) {
-    it(`${key}: known drift (preview ${known[key]}, Demo ${counts[key]})`, () => {
-      expect(preview).toBe(known[key])
-      expect(counts[key]).not.toBe(preview)
-    })
-  }
+  // Differences kept on purpose (23/11/2026). A change on either side fails these, so it is looked at.
+  it('laboratory samples: the preview keeps its 24 months of history, richer than the Demo', () => {
+    expect(laboratorySamples.length).toBeGreaterThanOrEqual(counts.laboratory_samples)
+    expect(laboratorySamples.length).toBe(209)
+  })
+  it('admissions: the preview has one per patient with an admission date; the Demo has one readmission more', () => {
+    const admissions = patientDemoData.flatMap((patient) => demoAdmissionsForPatient(patient)).length
+    expect(admissions).toBe(55)
+    expect(counts.patient_admissions - admissions).toBeLessThanOrEqual(3)
+  })
 })

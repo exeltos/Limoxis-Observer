@@ -8,7 +8,7 @@ export const SURVEILLANCE_SPLITS = {
   [`${S}SurveillanceCanonicalPage`]: [`${S}surveillanceListModel.ts`, `${S}SurveillanceListRows.tsx`],
   [`${S}ClinicalRecordDialogs`]: [`${S}clinicalDialogText.ts`, `${S}ClinicalSimpleDialog.tsx`, `${S}ClinicalCareDialogs.tsx`],
   [`${S}ClinicalAdmissions`]: [`${S}ClinicalAdmissionDialogs.tsx`],
-  [`${S}clinicalCloudService`]: [`${S}clinicalCloudMappers.ts`],
+  [`${S}clinicalCloudService`]: [`${S}clinicalCloudMappers.ts`, `${S}clinicalCareCloudService.ts`],
   [`${S}PatientClinicalCanonicalPage`]: [`${S}PatientClinicalRecordTabs.tsx`],
   [`${S}ClinicalJourney`]: [`${S}ClinicalJourneyCareStages.tsx`, `${S}ClinicalJourneyWindows.tsx`],
 }
