@@ -22,7 +22,7 @@ import type { PlanContext } from '../supabase/functions/_shared/activeUsers.ts'
 import { strongPassword } from '../supabase/functions/_shared/bulkAccounts.ts'
 import { accountReadyEmail } from '../supabase/functions/_shared/accountCreatedEmail.ts'
 import { isValidMobile as clientIsValidMobile, normalizeMobile as clientNormalizeMobile, splitNames } from '../src/features/platform/activeUsersModel'
-import { LIST_ROLES, checkPerson, employeeIssue, errorText, mapHeaders, markDuplicates, planEmployees, suggestRole, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
+import { LIST_ROLES, checkPerson, latinize, ruleUsername, employeeIssue, errorText, mapHeaders, markDuplicates, planEmployees, suggestRole, mergeVerdicts, planFile, previewCounts, requestUser, resolveRole, resultsSheet, templateSheet } from '../src/features/platform/activeUsersModel'
 import { readSource } from './helpers/readSource'
 
 type ValidRequest = Extract<ReturnType<typeof validateActiveUsersRequest>, { ok: true }>
@@ -425,5 +425,28 @@ describe('no duplicates and the employee list', () => {
     const source = read('supabase/functions/platform-create-active-users/index.ts')
     expect(source).toContain('const sendInvite=Boolean(realEmail)&&user.sendInvite')
     expect(source).toContain('if(sendInvite){')
+  })
+})
+
+describe('«Όνομα χρήστη όταν λείπει» (owner, 23/11/2026)', () => {
+  const header = ['Ονοματεπώνυμο', 'Email', 'Όνομα χρήστη', 'Ρόλος', 'Τμήμα', 'Κωδικός εργαζομένου']
+  const rows = [header, ['Μαρία Παπαδοπούλου', '', '', 'Εργαστήριο', '', '1001'], ['Γιώργος Χατζής', 'g@example.org', 'GChatzis', 'Εργαστήριο', '', '1002']]
+  it('turns Greek names into Latin usernames and reads the employee code', () => {
+    expect(latinize('Παπαδοπούλου')).toBe('papadopoulou')
+    expect(ruleUsername('surnameInitial', 'Μαρία Παπαδοπούλου', '')).toBe('PapadopoulouM')
+    expect(ruleUsername('employeeCode', 'Μαρία Παπαδοπούλου', '1001')).toBe('1001')
+    expect(ruleUsername('employeeCode', 'Μαρία', 'A')).toBe('')
+    expect(ruleUsername('auto', 'Μαρία Παπαδοπούλου', '1001')).toBe('')
+  })
+  it('fills only the empty usernames of the file, and says where each one came from', () => {
+    const byRule = planFile(rows, [], false, 'random', true, '', 'surnameInitial').people
+    expect(byRule.map(person => [person.username, person.usernameSource])).toEqual([['PapadopoulouM', 'rule'], ['GChatzis', 'file']])
+    expect(byRule[0].errors).toEqual([])
+    const auto = planFile(rows, [], false, 'random', true, '', 'auto').people
+    expect(auto[0].username).toBe('')
+    expect(auto[0].errors).toContain('EMAIL_OR_USERNAME_REQUIRED')
+  })
+  it('recognises the username column as other programs name it', () => {
+    for (const name of ['Login', 'User ID', 'sAMAccountName', 'Κωδικός χρήστη']) expect(mapHeaders([name]).username).toBe(0)
   })
 })

@@ -10,7 +10,7 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import { readSpreadsheet } from '../../core/import/spreadsheetImport'
 import { downloadXlsx } from '../../core/export/xlsxExport'
 import { ROLES } from './platformOrganizationShared'
-import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, fold, markDuplicates, strongTemporaryPassword, isDivisionRole, mergeVerdicts, needsDepartment, planFile, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
+import { TEMPORARY_PASSWORD_DAYS, checkPerson, errorText, fold, markDuplicates, strongTemporaryPassword, isDivisionRole, mergeVerdicts, needsDepartment, planFile, USERNAME_RULES, type UsernameRule, previewCounts, resultsSheet, templateSheet } from './activeUsersModel'
 import { loadDivisions } from '../interviews/interviewsService'
 import { createActiveUsers, previewActiveUsers } from './activeUsersService'
 import { ActiveUsersEmployeeList } from './ActiveUsersEmployeeList'
@@ -51,6 +51,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   const [divisions, setDivisions] = useState<DivisionOption[]>([])
   const [fileRows, setFileRows] = useState<unknown[][] | null>(null)
   const [passwordMode, setPasswordMode] = useState('random')
+  const [usernameRule, setUsernameRule] = useState<UsernameRule>('auto')
   // «Τον ορίζω εγώ» in the list and Excel tabs: one password for those sent (a file column can give one per row).
   const [customPassword, setCustomPassword] = useState('')
   const [tab, setTab] = useState(mode === 'file' || mode === 'list' ? mode : 'single')
@@ -109,7 +110,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     try {
       const rows = await readSpreadsheet(file)
       setFileRows(rows)
-      const next = planFile(rows, departments, en, passwordMode, sendInvite, customPassword)
+      const next = planFile(rows, departments, en, passwordMode, sendInvite, customPassword, usernameRule)
       setPlan(next)
       if (!next.missingColumns.length && next.people.length) await verify(next.people)
     } catch (error) {
@@ -121,7 +122,17 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
   async function changeFileMode(mode: string, password = customPassword) {
     setPasswordMode(mode)
     if (!fileRows) return
-    const next = planFile(fileRows, departments, en, mode, sendInvite, password)
+    const next = planFile(fileRows, departments, en, mode, sendInvite, password, usernameRule)
+    setPlan(next)
+    setPeople(null)
+    if (!next.missingColumns.length && next.people.length) await verify(next.people)
+  }
+
+  // «Όνομα χρήστη όταν λείπει»: the rows are read again with the chosen rule.
+  async function changeUsernameRule(rule: UsernameRule) {
+    setUsernameRule(rule)
+    if (!fileRows) return
+    const next = planFile(fileRows, departments, en, passwordMode, sendInvite, customPassword, rule)
     setPlan(next)
     setPeople(null)
     if (!next.missingColumns.length && next.people.length) await verify(next.people)
@@ -489,6 +500,17 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
               {passwordMode === 'custom' && customPasswordInput}
               <small>{passwordMode === 'custom' ? tx(`Ο ίδιος κωδικός για όλους, εκτός αν η στήλη «Προσωρινός κωδικός» του αρχείου δίνει άλλον. ${passwordRule}`, `The same password for all, unless the file's «Temporary password» column gives another. ${passwordRule}`) : passwordMode === 'phone' ? tx('Κάθε χρήστης χρειάζεται κινητό στη στήλη «Κινητό».', 'Every user needs a mobile number in the «Mobile» column.') : tx(`Λήγει σε ${TEMPORARY_PASSWORD_DAYS} ημέρες αν δεν γίνει σύνδεση.`, `Expires in ${TEMPORARY_PASSWORD_DAYS} days if nobody signs in.`)}</small>
             </label>
+            <label className="field active-users-mode">
+              <span>{tx('Όνομα χρήστη όταν λείπει', 'Username when missing')}</span>
+              <select value={usernameRule} disabled={busy} onChange={e => void changeUsernameRule(e.target.value as UsernameRule)}>
+                {USERNAME_RULES.map(rule => (
+                  <option key={rule} value={rule}>
+                    {rule === 'employeeCode' ? tx('Ο κωδικός εργαζομένου', 'The employee code') : rule === 'surnameInitial' ? tx('Επώνυμο + αρχικό ονόματος (λατινικά)', 'Surname + first-name initial (Latin)') : tx('Αυτόματα', 'Automatic')}
+                  </option>
+                ))}
+              </select>
+              <small>{usernameRule === 'employeeCode' ? tx('Π.χ. 1001, από τη στήλη «Κωδικός εργαζομένου».', 'E.g. 1001, from the «Employee code» column.') : usernameRule === 'surnameInitial' ? tx('Π.χ. Μαρία Παπαδοπούλου → PapadopoulouM.', 'E.g. Maria Papadopoulou → PapadopoulouM.') : tx('Αρχικά και αριθμός, π.χ. MP48213· χρειάζεται email όταν λείπει το όνομα χρήστη.', 'Initials and a number, e.g. MP48213; an e-mail is needed when the username is missing.')}</small>
+            </label>
             {inviteBox}
             <div className="active-users-file">
               <label className="active-users-pick">
@@ -510,8 +532,8 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
             {!plan && !readError && (
               <p className="active-users-note">
                 {tx(
-                  'Στήλες: Ονοματεπώνυμο, Email ή Όνομα χρήστη, Ρόλος (όνομα ή κωδικός), Τμήμα (υποχρεωτικό για ρόλους τμήματος), Κωδικός εργαζομένου (προαιρετικά, συνδέει τον εργαζόμενο), Κινητό (υποχρεωτικό αν ο κωδικός είναι το κινητό). Για Διευθυντή Διεύθυνσης: Διεύθυνση και Τμήματα που βλέπει (χωρισμένα με ;). Κατεβάστε το πρότυπο για να ξεκινήσετε.',
-                  'Columns: Full name, Email or Username, Role (name or code), Department (required for department roles), Employee code (optional, links the employee), Mobile (required when the password is the mobile number). For a Division Director: Division and Departments seen (separated by ;). Download the template to start.',
+                  'Στήλες: Ονοματεπώνυμο, Email, Όνομα χρήστη (αν μείνει κενό, φτιάχνεται με τον κανόνα παραπάνω· διαβάζεται και ως Login, User ID, sAMAccountName), Ρόλος (όνομα ή κωδικός), Τμήμα (υποχρεωτικό για ρόλους τμήματος), Κωδικός εργαζομένου (προαιρετικά, συνδέει τον εργαζόμενο), Κινητό (υποχρεωτικό αν ο κωδικός είναι το κινητό). Για Διευθυντή Διεύθυνσης: Διεύθυνση και Τμήματα που βλέπει (χωρισμένα με ;). Κατεβάστε το πρότυπο για να ξεκινήσετε.',
+                  'Columns: Full name, Email, Username (when empty, made by the rule above; also read as Login, User ID, sAMAccountName), Role (name or code), Department (required for department roles), Employee code (optional, links the employee), Mobile (required when the password is the mobile number). For a Division Director: Division and Departments seen (separated by ;). Download the template to start.',
                 )}
               </p>
             )}
@@ -546,7 +568,8 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                       <tr>
                         <th>{tx('Γραμμή', 'Row')}</th>
                         <th>{tx('Χρήστης', 'User')}</th>
-                        <th>{tx('Email / όνομα χρήστη', 'Email / username')}</th>
+                        <th>{tx('Email', 'Email')}</th>
+                        <th>{tx('Όνομα χρήστη', 'Username')}</th>
                         <th>{tx('Ρόλος · Τμήμα', 'Role · Department')}</th>
                         <th>{tx('Έλεγχος', 'Check')}</th>
                       </tr>
@@ -556,7 +579,8 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
                         <tr key={person.line} className={person.status === 'ok' ? '' : 'active-users-row-error'}>
                           <td>{person.line}</td>
                           <td>{person.fullName || '—'}</td>
-                          <td>{[person.email, person.username].filter(Boolean).join(' · ') || '—'}</td>
+                          <td>{person.email || '—'}</td>
+                          <td className="active-users-code">{person.username ? <>{person.username}{person.usernameSource === 'rule' && <small className="active-users-auto"> {tx('(κανόνας)', '(rule)')}</small>}</> : <span className="active-users-auto">{tx('αυτόματα', 'automatic')}</span>}</td>
                           <td>{[person.role ? roleLabel(person.role, language) : person.roleText, person.departmentName].filter(Boolean).join(' · ') || '—'}</td>
                           <td>{person.status === 'ok' ? <span className="status-badge active">{tx('Έτοιμος', 'Ready')}</span> : <span className="status-badge danger">{errorText(person.code, en)}</span>}</td>
                         </tr>
