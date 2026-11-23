@@ -10,23 +10,27 @@ import { laboratorySamples } from '../src/features/laboratory/laboratoryDemoData
 // `drift` holds what differs today (23/11/2026): [the preview, the Demo]. A section that gets aligned moves to `aligned`.
 const aligned: Record<string, number> = {
   patients: patientDemoData.length,
-}
-const drift: Record<string, number> = {
   employees: employeeRows.length,
   employee_vaccinations: employeeVaccinations.length,
   employee_certificates: employeeCertificates.length,
   employee_evaluations: employeeEvaluations.length,
+}
+const drift: Record<string, number> = {
   patient_admissions: patientDemoData.flatMap((patient) => demoAdmissionsForPatient(patient)).length,
   laboratory_samples: laboratorySamples.length,
 }
 const counts = snapshot.counts as Record<string, number>
 
 describe('the preview matches the real Demo', () => {
+  it('the staff ids are unique', () => {
+    const ids = employeeRows.map((row) => row.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
   for (const [key, preview] of Object.entries(aligned)) {
     it(`${key}: same count`, () => expect(preview).toBe(counts[key]))
   }
   // Pins today's difference: it fails when either side changes, so the change is looked at and the entry moved or updated.
-  const known: Record<string, number> = { employees: 37, employee_vaccinations: 84, employee_certificates: 22, employee_evaluations: 65, patient_admissions: 55, laboratory_samples: 209 }
+  const known: Record<string, number> = { patient_admissions: 55, laboratory_samples: 209 }
   for (const [key, preview] of Object.entries(drift)) {
     it(`${key}: known drift (preview ${known[key]}, Demo ${counts[key]})`, () => {
       expect(preview).toBe(known[key])
