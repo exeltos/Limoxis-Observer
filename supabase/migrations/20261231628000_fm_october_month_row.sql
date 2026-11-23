@@ -4,8 +4,9 @@
 -- γραμμή ανά μήνα· η γραμμή με period_start = 1/10 είχε τα σύνολα 1–30/10 (και, λόγω του σφάλματος, και της 31/10).
 -- Το 20261231624000 την ξαναϋπολόγισε σαν ημερήσια, μόνο με τις εγγραφές της 1/10, και χάθηκαν οι 2–30/10.
 -- Εδώ η γραμμή 1/10 παίρνει ξανά τα σύνολα όλων των εγγραφών FileMaker 1–30/10 (η 31/10 έχει πλέον δική της
--- γραμμή). Οι χειροκίνητες διορθώσεις της παλιάς γραμμής (αντίγραφο private.bk_fm_daily_rows_20261122) κρατιούνται:
--- όπου το αντίγραφο μείον τη 31/10 διαφέρει από το άθροισμα του FileMaker, μένει η τιμή του αντιγράφου.
+-- γραμμή). Πηγή είναι το FileMaker: η παλιά γραμμή (αντίγραφο private.bk_fm_daily_rows_20261122) είχε περίπου τα
+-- μισά από τα σύνολα του FileMaker για 1–30/10, άρα ούτε εκείνη ήταν πλήρης· η αναφορά της συνάρτησης δείχνει και τις
+-- τρεις τιμές (τρέχουσα, FileMaker 1–30/10, αντίγραφο μείον 31/10) για κάθε στήλη που αλλάζει.
 -- Μόνο update της γραμμής 1/10 (όχι κλειδωμένη)· επαναλαμβανόμενη εκτέλεση δίνει το ίδιο.
 
 create or replace function private.fm_restore_month_row(p_base_table text, p_register regclass, p_columns jsonb, p_row_day date, p_from date, p_to date, p_apply boolean default true)
@@ -30,8 +31,8 @@ begin
       where b.register = v_table and b.row_data->>'period_start' = p_row_day::text limit 1;
     execute format('select (%I)::numeric from %s where period_start = $1 limit 1', v_col, p_register) into v_31 using p_to + 1;
     execute format('select (%I)::numeric from %s where id = $1', v_col, p_register) into v_cur using v_row;
-    v_new := case when v_bk is not null and v_bk - coalesce(v_31, 0) <> v_stage then v_bk - coalesce(v_31, 0) else v_stage end;
-    if coalesce(v_cur, 0) <> v_new or (v_bk is not null and v_bk - coalesce(v_31, 0) <> v_stage) then
+    v_new := v_stage;
+    if coalesce(v_cur, 0) <> v_new then
       v_report := v_report || jsonb_build_object('column', v_col, 'current', v_cur, 'filemaker_1_30', v_stage, 'backup_minus_31', v_bk - coalesce(v_31, 0), 'new', v_new);
     end if;
     v_set := v_set || format('%I = %s, ', v_col, coalesce(nullif(v_new, 0)::text, 'null'));
