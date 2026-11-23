@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { readSource } from './readSource.ts'
 const files=['src/features/laboratory/LaboratoryPage.jsx']
 const greek=/[Α-Ωα-ωΆΈΉΊΌΎΏάέήίόύώϊΐϋΰ]/

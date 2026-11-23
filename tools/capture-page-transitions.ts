@@ -217,4 +217,4 @@ if (!only || only.includes('records')) {
 await browser.close(); server.close()
 const flagged = results.filter(r => r.flags.length)
 console.log(`${results.length} transitions, ${flagged.length} with an in-between state (cpu ×${cpu})${errors.length ? `, ${errors.length} page errors` : ''}`)
-if (reportFile) fs.writeFileSync(reportFile, `${JSON.stringify({ cpu, latency, results: args.includes('--brief') ? results.map(({ samples, ...rest }) => rest) : results, errors }, null, 1)}\n`)
+if (reportFile) fs.writeFileSync(reportFile, `${JSON.stringify({ cpu, latency, results: args.includes('--brief') ? results.map(row => { const brief = { ...row }; delete brief.samples; return brief }) : results, errors }, null, 1)}\n`)

@@ -21,7 +21,7 @@ export default [
   },
   // TypeScript: the same rules as the JavaScript source, with the TypeScript
   // parser; the compiler (npm run typecheck:strict) checks the types.
-  ...tseslint.configs.recommended.map(config => ({ ...config, files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'] })),
+  ...tseslint.configs.recommended.map(config => ({ ...config, files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}', 'tools/**/*.ts'] })),
   {
     files: ['src/**/*.{ts,tsx}'],
     languageOptions: { ecmaVersion: 2024, sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } }, globals: globals.browser },
@@ -42,5 +42,10 @@ export default [
     plugins: { react },
     settings: { react: { version: 'detect' } },
     rules: { 'react/jsx-uses-vars': 'error' }
+  },
+  // The audits and screenshot scripts (owner, 23/11/2026: they were not linted at all). Node scripts; some run code in the page.
+  {
+    files: ['tools/**/*.ts'],
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node, ...globals.browser } }
   }
 ]

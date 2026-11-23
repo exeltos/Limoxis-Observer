@@ -1,5 +1,3 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { readSource } from './readSource.ts'
 
 // The patient clinical record page is split across the surveillance files below.

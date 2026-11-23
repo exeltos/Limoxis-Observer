@@ -143,6 +143,7 @@ function writeTokens(tokensFile, used, registry) {
 
 // Το μητρώο: όνομα για κάθε ζεύγος ρόλος|χρώμα όλων των αρχείων CSS. Φτιάχνεται μία
 // φορά (--init-registry) και μετά μόνο συμπληρώνεται, ώστε τα ονόματα να μένουν ίδια.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- the family order the registry was first built in
 const FAMILY_ORDER = ['neutral', 'brand', 'success', 'warning', 'danger', 'accent']
 function family(hex) {
   const h = hex.slice(1)

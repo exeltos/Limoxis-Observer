@@ -4,7 +4,6 @@ import { helpExtras } from '../src/core/help/helpExtras.js'
 
 const elKeys=Object.keys(helpManual).sort()
 const enKeys=Object.keys(helpManualEn).sort()
-const extraKeys=Object.keys(helpExtras).sort()
 const greek=/[Α-Ωα-ωΆΈΉΊΌΎΏάέήίόύώϊϋΐΰ]/
 
 let failed=false

@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint src tests --max-warnings 0",
+    "lint": "eslint src tests tools --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tools/**/*.ts\" \"tests/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tools/**/*.ts\" \"tests/**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",

@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import vm from 'node:vm'
 import { readSource } from './readSource.ts'
 
@@ -39,6 +38,7 @@ function flatten(obj,prefix='',out={}){
   }
   return out
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for a manual per-file comparison
 function compare(name,root){
   const el=flatten(root.el),en=flatten(root.en)
   const missingEn=Object.keys(el).filter(k=>!(k in en))
