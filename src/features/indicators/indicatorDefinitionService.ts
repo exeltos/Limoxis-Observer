@@ -16,6 +16,7 @@ export const INDICATOR_METRICS: readonly string[]=Object.freeze([
  'mdr_isolation_total','mdr_isolation_ecoli','mdr_isolation_proteus','mdr_isolation_acinetobacter','mdr_isolation_klebsiella','mdr_isolation_enterobacter','mdr_isolation_pseudomonas','mdr_isolation_saureus','mdr_isolation_enterococcus',
  'pps_patients_total','pps_patients_with_hai','pps_patients_on_antibiotics',
  'clabsi_events','central_line_days','cauti_events','urinary_catheter_days','vap_events','ventilator_days','ssi_episodes',
+ 'cvc_device_days','ventilator_device_days','device_patient_days',
  'clabsi_events_le750','central_line_days_le750','clabsi_events_bw751_1000','central_line_days_bw751_1000','clabsi_events_bw1001_1500','central_line_days_bw1001_1500','clabsi_events_bw1501_2500','central_line_days_bw1501_2500','clabsi_events_gt2500','central_line_days_gt2500',
 ])
 
@@ -53,6 +54,10 @@ export const INDICATOR_RATIO_RULES: Readonly<Record<string, Record<string, Indic
  cauti_events:{urinary_catheter_days:{multiplier:1000,unit:'/1.000 ημέρες ουροκαθετήρα'}},
  ssi_episodes:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
  vap_events:{ventilator_days:{multiplier:1000,unit:'/1.000 ημέρες αναπνευστήρα'}},
+ // Device utilisation of the ICU/NICU (device-days per patient-day of the unit's register), as a percentage.
+ cvc_device_days:{device_patient_days:{multiplier:100,unit:'%'}},
+ urinary_catheter_days:{device_patient_days:{multiplier:100,unit:'%'}},
+ ventilator_device_days:{device_patient_days:{multiplier:100,unit:'%'}},
  clabsi_events_le750:{central_line_days_le750:{multiplier:1000,unit:'/1.000 ημέρες κεντρικού καθετήρα (ΒΓ ≤750g)'}},
  clabsi_events_bw751_1000:{central_line_days_bw751_1000:{multiplier:1000,unit:'/1.000 ημέρες κεντρικού καθετήρα (ΒΓ 751-1000g)'}},
  clabsi_events_bw1001_1500:{central_line_days_bw1001_1500:{multiplier:1000,unit:'/1.000 ημέρες κεντρικού καθετήρα (ΒΓ 1001-1500g)'}},

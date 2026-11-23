@@ -95,4 +95,13 @@ describe('database: registers and device-day indicators', () => {
     expect(ownerSql).toContain("'catheter_urinary_tract'")
     expect(ownerSql).toContain('Ουρολοίμωξη σχετιζόμενη με καθετήρα (CAUTI)')
   })
+
+  it('keeps fractional device-days and lets the utilisation indicators be edited', () => {
+    const fractional = readSource('supabase/migrations/20261231629000_icu_nicu_device_days_fractional.sql')
+    expect(fractional).toContain("'ventilator_device_days', round(sum(vent * share) filter (where vent is not null), 2)")
+    expect(fractional).not.toMatch(/round\(sum\([^()]*\) filter \(where [^()]*\)\)/)
+    const service = readSource('src/features/indicators/indicatorDefinitionService.ts')
+    for (const metric of ['cvc_device_days', 'ventilator_device_days', 'device_patient_days']) expect(service).toContain(`'${metric}'`)
+    expect(service).toContain("ventilator_device_days:{device_patient_days:{multiplier:100,unit:'%'}}")
+  })
 })
