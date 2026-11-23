@@ -10,7 +10,8 @@ create index if not exists committee_decisions_owner_employee_idx on public.comm
 create index if not exists control_definitions_culture_department_idx on public.control_definitions (culture_department_id);
 create index if not exists training_programs_owner_employee_idx on public.training_programs (owner_employee_id);
 create index if not exists training_programs_trainer_employee_idx on public.training_programs (trainer_employee_id);
-create index if not exists training_programs_organizer_department_idx on public.training_programs (organizer_department_id);
+-- Distinct name: training_programs_organizer_department_idx already exists on (organization_id, organizer_department_id).
+create index if not exists training_programs_organizer_department_fk_idx on public.training_programs (organizer_department_id);
 create index if not exists quality_capa_actions_owner_employee_idx on public.quality_capa_actions (owner_employee_id);
 create index if not exists kitchen_receipts_receiver_employee_idx on public.kitchen_receipts (receiver_employee_id);
 create index if not exists kitchen_material_usage_product_idx on public.kitchen_material_usage (product_id);
