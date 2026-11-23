@@ -278,7 +278,7 @@ describe('the department’s programmes (owner, 20/11/2026: «δεν θέλω ν
 describe('training numbers for the Platform Owner (owner, 23/11/2026)', () => {
   it('lets the Platform Owner read participation and organisers in a role preview, nothing else changes', () => {
     const sql = readSource('supabase/migrations/20261231630000_training_numbers_platform_owner.sql')
-    expect(sql.match(/if not public\.current_user_is_platform_owner\(\)\n     and not exists \(select 1 from public\.organization_members om/g)).toHaveLength(2)
+    expect(sql.match(/if not public\.current_user_is_platform_owner\(\)\n {5}and not exists \(select 1 from public\.organization_members om/g)).toHaveLength(2)
     expect(sql).not.toMatch(/^\s*(drop|revoke|delete|alter policy)\b/im)
   })
 })
