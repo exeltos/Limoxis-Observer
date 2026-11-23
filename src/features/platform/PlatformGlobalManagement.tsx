@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ManagementPage } from '../management/ManagementPage'
 
-const GROUPS=['libraries','lira','sources']
+const GROUPS=['libraries','lira','sources','clinical']
 // An old link without a group (#management, ?tab=…) opens the screen its tab belongs to.
 const GROUP_OF_TAB: Record<string,string>={liraKnowledge:'lira',liraAi:'lira',references:'sources'}
 

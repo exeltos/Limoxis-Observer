@@ -46,22 +46,28 @@ describe('Management Center review', () => {
     expect(read('src/features/management/ClinicalScalesPanel.jsx')).toContain('setRows(demoClinicalScaleDefinitions.map')
   })
 
-  it('the platform update buttons (check now; the updates — pending and history — with their count) sit in the header of the Lists, with no «⋯»', () => {
+  it('the clinical sources update center is a tab of «Νομοθεσία & πηγές», not buttons on the Lists (owner, 23/11/2026)', () => {
     const page = read('src/features/management/ManagementPage.jsx')
-    expect(page).toContain("const updateActions=isPlatformOwner&&activeGroup==='libraries'?")
-    expect(page).toContain("t('managementPanel.checkNow')")
-    expect(page).toContain("{t('managementPanel.updatesButton')}{pendingUpdates.length>0?` (${pendingUpdates.length})`:''}")
-    expect(page).not.toContain("<OverflowMenu items={[{id:'history'")
-    expect(page).toContain('<Page fill actions={updateCenterOpen?null:(updateActions||sourcesActions)}')
+    const tabs = read('src/features/platform/PlatformLegalTabs.jsx')
+    expect(page).not.toContain('const updateActions=')
+    expect(page).not.toContain('updateCenterOpen')
+    expect(page).toContain("const clinicalView=global&&isPlatformOwner&&group==='clinical'")
+    expect(page).toContain('<Page fill actions={clinicalView?null:sourcesActions}')
+    expect(page).toContain("<PlatformLegalTabs active={clinicalView?'clinical':'references'}/>")
+    expect(tabs).toContain("clinical: '/platform#management?group=clinical'")
+    expect(tabs).toContain("{ id: 'clinical', label: en ? 'Clinical sources' : 'Κλινικές πηγές', icon: History, count: count(shown.clinical) }")
+    expect(read('src/features/platform/PlatformGlobalManagement.jsx')).toContain("'clinical'")
   })
 
-  it('the update center is a screen of the Lists (with Back), not a dialog', () => {
+  it('the update center is a tab screen, not a dialog, with one progress bar', () => {
     const page = read('src/features/management/ManagementPage.jsx')
     const center = read('src/features/management/PlatformUpdateCenter.jsx')
-    expect(page).toContain('{updateCenterOpen?<PlatformUpdateCenter ')
+    expect(page).toContain('{clinicalView?<PlatformUpdateCenter ')
+    expect(page).not.toContain('management-center-update-progress')
     expect(center).not.toContain('ObserverDialog')
     expect(center).toContain('puc-page')
-    expect(center).toContain('<BackButton onClick={onClose}')
+    expect(center).toContain('{onClose&&<header className="puc-page-header">')
+    expect(center).toContain('{c.sourcesProgress} {running.subCurrent}/{running.subTotal}')
   })
 
   it('management tabs use the record-tab underline style', () => {

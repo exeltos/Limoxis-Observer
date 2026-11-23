@@ -112,9 +112,9 @@ export function AppShell(){
   const platformActive=(item: PlatformNavItem)=>{
     const under=(prefix: string)=>location.pathname===prefix||location.pathname.startsWith(`${prefix}/`)
     const management=location.pathname==='/platform'&&platformHashKey==='management'
-    if(item.key==='platformNav.legislation')return under('/platform/legislation')||under('/platform/library')||(management&&platformManagementGroup==='sources')
+    if(item.key==='platformNav.legislation')return under('/platform/legislation')||under('/platform/library')||(management&&['sources','clinical'].includes(platformManagementGroup as string))
     if(item.key==='platformNav.lira')return management&&platformManagementGroup==='lira'
-    if(item.key==='platformNav.libraries')return management&&!['sources','lira'].includes(platformManagementGroup as string)
+    if(item.key==='platformNav.libraries')return management&&!['sources','clinical','lira'].includes(platformManagementGroup as string)
     // A user record opened from another screen (the users list, the sign-ins, the Overview, an organization tab) keeps that screen's entry highlighted.
     const userBack=platformHashKey==='organizations'&&new URLSearchParams(location.hash.split('?')[1]||'').get('user')?(location.state?.userReturnTo||(location.state?.fromUsers?'/platform#users':'')):''
     if(item.key==='platformNav.audit')return under('/platform/audit')||under('/platform/health')||userBack.startsWith('/platform/audit')
