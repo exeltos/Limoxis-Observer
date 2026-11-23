@@ -67,12 +67,13 @@ export const platformHelp: Record<'el' | 'en', HelpBook>={
   ],steps:['Πατήστε «Νέα ανακοίνωση».','Συμπληρώστε κείμενο, νοσοκομεία και περίοδο.','Αποθηκεύστε· εμφανίζεται στους διαχειριστές μόλις ανοίξουν την εφαρμογή.']},
   '/platform#management':{title:'Λίστες',summary:'Οι κοινές λίστες, οι δέσμες μέτρων, τα κριτήρια λοιμώξεων και οι ορισμοί δεικτών για όλα τα νοσοκομεία.',audience:audienceEl,chapters:[
    ['Κοινό περιεχόμενο','Αριστερά διαλέγετε λίστα ανά ομάδα (Κλινικά, Εργαστήριο, Πρόληψη…)· δεξιά βλέπετε και αλλάζετε τις εγγραφές της. Οι αλλαγές εφαρμόζονται σε όλα τα νοσοκομεία που χρησιμοποιούν το αντίστοιχο κεντρικό στοιχείο.'],
-   ['Ενημερώσεις πηγών','Με «Έλεγχος τώρα» ελέγχονται οι κλινικές πηγές. Το «Ενημερώσεις» ανοίγει όσες περιμένουν έλεγχο (ο αριθμός τους φαίνεται στο κουμπί) μαζί με το ιστορικό: «Ελέγχθηκε» κλείνει μια αλλαγή, «Αναβολή» την επαναφέρει σε 7 ημέρες.']
-  ],steps:['Διαλέξτε λίστα αριστερά.','Κάντε την αλλαγή.','Ελέγξτε τις εκκρεμείς ενημερώσεις πηγών.']},
-  '/platform/legislation':{title:'Νομοθεσία & πηγές',summary:'Η βιβλιοθήκη νομοθεσίας που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος, οι πηγές του, οι οδηγίες & σύνδεσμοι της Βιβλιοθήκης και οι εξωτερικές πηγές.',audience:audienceEl,chapters:[
+   ['Ενημερώσεις πηγών','Ο έλεγχος των κλινικών πηγών βρίσκεται πλέον στο Νομοθεσία & πηγές › Κλινικές πηγές.']
+  ],steps:['Διαλέξτε λίστα αριστερά.','Κάντε την αλλαγή.','Ελέγξτε τις αλλαγές στο Νομοθεσία & πηγές › Κλινικές πηγές.']},
+  '/platform/legislation':{title:'Νομοθεσία & πηγές',summary:'Η βιβλιοθήκη νομοθεσίας που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος, οι πηγές του, οι οδηγίες & σύνδεσμοι της Βιβλιοθήκης, οι εξωτερικές πηγές και οι κλινικές πηγές.',audience:audienceEl,chapters:[
    ['Νομοθεσία','Τα κείμενα της πλατφόρμας με τις απαιτήσεις τους. Με «Νέο κείμενο» προσθέτετε ένα· τίποτα δεν φτάνει στα νοσοκομεία πριν το δημοσιεύσετε.'],
    ['Προς έλεγχο και πηγές νομοθεσίας','Ο αυτόματος έλεγχος διαβάζει τις πηγές νομοθεσίας κάθε 2 ώρες· ό,τι βρει εμφανίζεται «Προς έλεγχο», όπου το καταχωρίζετε ως νέο κείμενο, ως ενημέρωση υπάρχοντος ή το απορρίπτετε.'],
-   ['Οδηγίες & σύνδεσμοι, εξωτερικές πηγές','Το περιεχόμενο της Βιβλιοθήκης σε επίπεδο πλατφόρμας και οι επίσημες πηγές (ΠΟΥ, ECDC, ΕΟΔΥ…) που διαβάζουν όλα τα νοσοκομεία.']
+   ['Οδηγίες & σύνδεσμοι, εξωτερικές πηγές','Το περιεχόμενο της Βιβλιοθήκης σε επίπεδο πλατφόρμας και οι επίσημες πηγές (ΠΟΥ, ECDC, ΕΟΔΥ…) που διαβάζουν όλα τα νοσοκομεία.'],
+   ['Κλινικές πηγές','Οι ελεγχόμενες κλινικές πηγές (SCCM, ΠΟΥ, CDC…) από τις οποίες προέρχονται κριτήρια, δείκτες και κλίμακες. Ο αριθμός στην καρτέλα δείχνει πόσες αλλαγές περιμένουν έλεγχο. Με «Έλεγχος τώρα» ελέγχονται όλες· η πρόοδος (στάδιο και πηγές) φαίνεται στην ίδια καρτέλα. Σε κάθε αλλαγή, «Ελέγχθηκε» την κλείνει και «Αναβολή 7 ημερών» την επαναφέρει αργότερα· από κάτω είναι το ιστορικό ελέγχων.']
   ],steps:['Διαλέξτε επιλογή από τη γραμμή στην κορυφή.','Ελέγξτε τα ευρήματα «Προς έλεγχο».','Δημοσιεύστε ό,τι πρέπει να δουν τα νοσοκομεία.']},
   '/platform#management?group=lira':{title:'LIRA & AI',summary:'Η γνώση που χρησιμοποιεί η LIRA σε όλα τα νοσοκομεία.',audience:audienceEl,chapters:[
    ['Γνώση της LIRA','Η LIRA είναι ο βοηθός τεχνητής νοημοσύνης που απαντά μέσα στα νοσοκομεία. Η σελίδα (στο μενού «LIRA & AI») έχει τίτλο «Πηγές γνώσης της LIRA (βοηθός AI)» και δείχνει τα κείμενα και τις πηγές στα οποία βασίζεται όταν απαντά: φορέας, πηγή, έκδοση, έγκριση και αν η γνώση είναι έτοιμη. Οι αλλαγές ισχύουν για όλα τα νοσοκομεία.']
@@ -133,12 +134,13 @@ export const platformHelp: Record<'el' | 'en', HelpBook>={
   ],steps:['Select "New announcement".','Fill in the text, hospitals and period.','Save; the administrators see it when they open the application.']},
   '/platform#management':{title:'Lists',summary:'The shared lists, prevention bundles, infection criteria and indicator definitions for every hospital.',audience:audienceEn,chapters:[
    ['Shared content','On the left pick a list by group (Clinical, Laboratory, Prevention…); on the right view and change its entries. Changes apply to every hospital using the corresponding central item.'],
-   ['Source updates','"Check now" checks the clinical sources. "Updates" opens those waiting for review (their number shows on the button) together with the history: "Reviewed" closes a change, "Postpone" brings it back in 7 days.']
-  ],steps:['Pick a list on the left.','Make the change.','Review pending source updates.']},
-  '/platform/legislation':{title:'Legislation & sources',summary:'The legislation library every hospital reads, what the automatic check found, its sources, the Library’s guides & links and the external sources.',audience:audienceEn,chapters:[
+   ['Source updates','The check of the clinical sources now sits in Legislation & sources › Clinical sources.']
+  ],steps:['Pick a list on the left.','Make the change.','Review the changes in Legislation & sources › Clinical sources.']},
+  '/platform/legislation':{title:'Legislation & sources',summary:'The legislation library every hospital reads, what the automatic check found, its sources, the Library’s guides & links, the external sources and the clinical sources.',audience:audienceEn,chapters:[
    ['Legislation','The platform’s texts with their requirements. "New text" adds one; nothing reaches the hospitals before you publish it.'],
    ['To review and legislation sources','The automatic check reads the legislation sources every 2 hours; what it finds is listed under "To review", where you record it as a new text, as an update of an existing one, or dismiss it.'],
-   ['Guides & links, external sources','The Library content at platform level and the official sources (WHO, ECDC, EODY…) every hospital reads.']
+   ['Guides & links, external sources','The Library content at platform level and the official sources (WHO, ECDC, EODY…) every hospital reads.'],
+   ['Clinical sources','The governed clinical sources (SCCM, WHO, CDC…) behind criteria, indicators and scales. The number on the tab shows how many changes wait for review. "Check now" checks them all; the progress (stage and sources) shows on the same tab. On each change, "Reviewed" closes it and "Postpone 7 days" brings it back later; the check history is below.']
   ],steps:['Pick a choice from the row at the top.','Check the items "To review".','Publish what the hospitals should see.']},
   '/platform#management?group=lira':{title:'LIRA & AI',summary:'The knowledge LIRA uses in every hospital.',audience:audienceEn,chapters:[
    ['LIRA’s knowledge','LIRA is the AI assistant that answers inside the hospitals. The page (in the “LIRA & AI” menu) is titled “LIRA knowledge sources (AI assistant)” and shows the texts and sources it relies on when it answers: authority, source, version, approval and whether the knowledge is ready. Changes apply to every hospital.']

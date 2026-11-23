@@ -51,7 +51,7 @@
 .puc-page .puc{flex:1 1 auto;min-height:0;overflow:auto;padding:16px}
 /* Inside the one frame the sections are separated by a line, not boxed again. */
 .puc-page .puc-section{padding:16px 0 0;border:0;border-top:1px solid var(--lo-color-border);border-radius:0;background:transparent}
-.puc{display:grid;gap:16px}
+.puc{display:grid;align-content:start;gap:16px}
 .puc-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--text-neutral-441)}
 .puc-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
 .puc-tile{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border-brand-902-2);border-radius:12px;background:var(--lo-color-surface);color:var(--text-neutral-441)}
