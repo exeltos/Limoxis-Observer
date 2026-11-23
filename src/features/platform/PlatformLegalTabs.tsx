@@ -23,7 +23,8 @@ const TARGETS: Record<string, string> = {
 // The counts on the tabs: legislation to review, failing sources and clinical source changes to review.
 export type LegalTabCounts = { review?: number, checks?: number, clinical?: number }
 
-export function PlatformLegalTabs({ active, counts = null }: { active: string, counts?: LegalTabCounts | null }) {
+// clinicalCount: the screen that holds the clinical review queue passes its live length, so the badge follows a review.
+export function PlatformLegalTabs({ active, counts = null, clinicalCount }: { active: string, counts?: LegalTabCounts | null, clinicalCount?: number }) {
   const { language } = useLanguage()
   const navigate = useNavigate()
   const en = language === 'en'
@@ -41,7 +42,7 @@ export function PlatformLegalTabs({ active, counts = null }: { active: string, c
     })
     return () => { alive = false }
   }, [counts])
-  const shown: LegalTabCounts = { ...loaded, ...counts }
+  const shown: LegalTabCounts = { ...loaded, ...counts, ...(clinicalCount !== undefined ? { clinical: clinicalCount } : {}) }
   const count = (value: number | undefined) => (value !== undefined && value > 0 ? value : null)
   return (
     <ModuleTabs
