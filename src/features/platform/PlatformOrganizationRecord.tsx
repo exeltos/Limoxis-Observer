@@ -26,6 +26,8 @@ import { matchesSearch } from '../../core/i18n/searchMatch'
 import { PlatformOrganizationUserRecord } from './PlatformOrganizationUserRecord'
 import { ROLES, toDraft } from './platformOrganizationShared'
 import { loadEmployeesAsync } from '../employees/employeeService'
+import { isOwnerPreview, previewMemberAccess, previewMemberDepartments } from '../../core/preview/ownerPreview'
+import { loadMemberAccess, loadMemberDepartments, passwordState, passwordStateLabel, type MemberAccess } from './memberAccess'
 
 import { loadEmployeeAccounts } from './bulkAccountsService'
 import './activeUsers.css'
@@ -115,10 +117,16 @@ export function PlatformOrganizationRecord({
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true)
     try {
-      const [rows, employeeRows] = await Promise.all([
+      const [memberRows, employeeRows, access, scopes] = await Promise.all([
         listOrganizationMembersDetailed(organization.id),
         loadEmployeesAsync(organization.id),
+        // Temporary or own password, lock (owner, 23/11/2026); the list still shows without it.
+        isOwnerPreview() ? previewMemberAccess(organization.id) as Map<string, MemberAccess> : loadMemberAccess(organization.id).catch(() => new Map<string, MemberAccess>()),
+        isOwnerPreview() ? previewMemberDepartments(organization.id) : loadMemberDepartments(organization.id).catch(() => []),
       ])
+      // «Τμήμα»: the department of a department role, else that of the linked employee record.
+      const scopeOf = new Map<string, string>(scopes.map((row: { membership_id: string, department_name: string }) => [row.membership_id, row.department_name]))
+      const rows: OrganizationMember[] = memberRows.map(row => ({ ...row, access: access.get(row.userId) || null, departmentName: scopeOf.get(row.id) || (employeeRows as OrganizationEmployee[]).find(employee => employee.userId === row.userId)?.department || '' }))
       setUsers(rows)
       setEmployees(employeeRows as OrganizationEmployee[])
       setEmployeeLinkDrafts(
@@ -211,11 +219,12 @@ export function PlatformOrganizationRecord({
       if (userFilter === 'invited') return state === 'pending' || state === 'expired'
       if (userFilter === 'inactive') return state === 'inactive'
       if (userFilter === 'online') return onlineUserIds.has(user.userId)
+      if (userFilter === 'temporary' || userFilter === 'own' || userFilter === 'locked') return passwordState(user.access, state === 'pending' || state === 'expired') === userFilter
       return true
     })
     // Everything the row shows (owner, 19/11/2026: the searches find everything).
     return byFilter.filter(user =>
-      matchesSearch(userQuery, [user.name, user.email, user.username, roleLabel(user.role, language), userStateLabel(say, platformUserState({ status: user.status, invitation: user.invitationStatus })), onlineUserIds.has(user.userId) ? say('Συνδεδεμένος τώρα', 'Online now') : '']),
+      matchesSearch(userQuery, [user.name, user.email, user.username, user.departmentName, roleLabel(user.role, language), (() => { const pw = passwordState(user.access, user.status === 'invited'); return pw ? passwordStateLabel(say, pw, user.access) : '' })(), userStateLabel(say, platformUserState({ status: user.status, invitation: user.invitationStatus })), onlineUserIds.has(user.userId) ? say('Συνδεδεμένος τώρα', 'Online now') : '']),
     )
   }, [users, userQuery, userFilter, onlineUserIds, language])
   const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize)),

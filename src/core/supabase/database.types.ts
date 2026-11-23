@@ -18922,6 +18922,16 @@ export type Database = {
       }
       lira_fold: { Args: { p_text: string }; Returns: string }
       normalize_person_name: { Args: { p_name: string }; Returns: string }
+      organization_member_access: {
+        Args: { p_organization_id: string }
+        Returns: {
+          last_sign_in_at: string
+          must_change_password: boolean
+          temporary_password_expires_at: string
+          temporary_password_locked_at: string
+          user_id: string
+        }[]
+      }
       organization_member_departments: {
         Args: { p_organization_id: string }
         Returns: {

@@ -28,6 +28,7 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { cloudClient } from '../../core/supabase/cloudContext'
+import { AccessCell, loadMemberAccess, passwordState, passwordStateLabel, type MemberAccess } from '../platform/memberAccess'
 import type { ReactNode } from 'react'
 import type { Tables } from '../../core/supabase/database.types'
 import type { LanguageContextValue } from '../../core/i18n/languageTypes'
@@ -50,6 +51,8 @@ const DEMO_USERS: UserRow[]=[
  {id:'DEMO-MEMBER-003',userId:'DEMO-USER-003',role:ROLES.LABORATORY,status:'active',username:'demo.lab',name:'Εργαστήριο Demo',nameEn:'Demo Laboratory',email:'lab.demo@example.org'},
  {id:'DEMO-MEMBER-004',userId:'DEMO-USER-004',role:ROLES.DEPARTMENT_MANAGER,status:'active',username:'demo.icu',name:'Προϊστάμενος ΜΕΘ',nameEn:'ICU Manager',email:'icu.demo@example.org',departmentId:'ΜΕΘ',departmentName:'ΜΕΘ'},
 ]
+// The Demo: a mix of password states, so «Πρόσβαση» shows what it means (owner, 23/11/2026).
+const demoMemberAccess=()=>{const at=(days: number)=>new Date(Date.now()+days*86400000).toISOString();return new Map<string,MemberAccess>(DEMO_USERS.map((row,index)=>[row.userId,{mustChange:index%3===1,expiresAt:index%3===1?at(5):null,lockedAt:index===DEMO_USERS.length-1?at(-1):null,lastSignInAt:index%3===1?null:at(-1)}]))}
 
 // Greek or English text by the interface language.
 const useTx=()=>{const {language}=useLanguage();return useCallback((el: string,en: string)=>language==='en'?en:el,[language])}
@@ -60,7 +63,7 @@ export function ManagementUsersPanel(){const tx=useTx();
  // «Μαζική δημιουργία»: the employees without an account, as the Platform Owner sees them, for this hospital.
  const [query,setQuery]=useState(''),[roleFilter,setRoleFilter]=useState('all'),[statusFilter,setStatusFilter]=useState<string|null>(null)
  const [view,setView]=useState('accounts'),[roster,setRoster]=useState<Awaited<ReturnType<typeof loadEmployeeAccounts>>>({employees:[],departments:[]}),[rosterLoading,setRosterLoading]=useState(false)
- const [rows,setRows]=useState<UserRow[]>([]),[loading,setLoading]=useState(false),[createOpen,setCreateOpen]=useState(false),[createdUser,setCreatedUser]=useState<CreatedUser|null>(null),[selectedUser,setSelectedUser]=useState<UserRow|null>(null),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0)
+ const [rows,setRows]=useState<UserRow[]>([]),[loading,setLoading]=useState(false),[createOpen,setCreateOpen]=useState(false),[createdUser,setCreatedUser]=useState<CreatedUser|null>(null),[selectedUser,setSelectedUser]=useState<UserRow|null>(null),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0),[access,setAccess]=useState<Map<string,MemberAccess>>(new Map())
  const {departments}=useDepartments(),departmentName=(id: string|null|undefined)=>{const d=departments.find(x=>x.id===id);return d?(language==='en'?d.nameEn||d.name:d.name):''}
  const currentUserId=authUser?.id||'',isPlatformOwner=role===ROLES.PLATFORM_OWNER,previewingHospitalAdmin=Boolean(isRolePreview&&role===ROLES.HOSPITAL_ADMIN)
  const canManageUsers=can(role,CAPABILITIES.MANAGE_USERS,membership?.capabilities??[],membership?.customCapabilities??[])
@@ -68,11 +71,11 @@ export function ManagementUsersPanel(){const tx=useTx();
  const isPreviewProtectedRow=(u: UserRow|null|undefined)=>Boolean(previewingHospitalAdmin&&u?.role===ROLES.HOSPITAL_ADMIN)
  const canManageRow=(u: UserRow|null|undefined)=>isPlatformOwner||!isPreviewProtectedRow(u)
  useEffect(()=>{
-  if(isDemo){setRows(DEMO_USERS.map(row=>({...row})));setLoading(false);return}
+  if(isDemo){setRows(DEMO_USERS.map(row=>({...row})));setAccess(demoMemberAccess());setLoading(false);return}
   if(!supabase||!tenant?.id)return
   let active=true;setLoading(true)
   // One RPC: member and profile RLS show an admin only its own row (organization_users_list).
-  ;(async()=>{try{const [{data:members,error},{data:scopes,error:scopeError}]=await Promise.all([cloudClient().rpc('organization_users_list',{p_organization_id:tenant.id}),cloudClient().rpc('organization_member_departments',{p_organization_id:tenant.id})]);if(error)throw error;if(scopeError)throw scopeError;if(!active)return;const scopeOf=new Map((scopes||[]).map(row=>[row.membership_id,row]));setRows((members||[]).map(row=>({id:row.id,userId:row.user_id,role:row.role,status:row.status,screenGuides:screenGuideChoice(row.screen_guides),username:row.username||'—',name:row.full_name||'—',email:row.contact_email||'',departmentId:scopeOf.get(row.id)?.department_id||'',departmentName:scopeOf.get(row.id)?.department_name||''})))}catch(e){if(active)notify((e as Error)?.message||tx('Αποτυχία φόρτωσης χρηστών.','Users could not be loaded.'),'error')}finally{if(active)setLoading(false)}})()
+  ;(async()=>{try{const [{data:members,error},{data:scopes,error:scopeError}]=await Promise.all([cloudClient().rpc('organization_users_list',{p_organization_id:tenant.id}),cloudClient().rpc('organization_member_departments',{p_organization_id:tenant.id})]);loadMemberAccess(tenant.id).then(map=>{if(active)setAccess(map)}).catch(()=>{if(active)setAccess(new Map())});if(error)throw error;if(scopeError)throw scopeError;if(!active)return;const scopeOf=new Map((scopes||[]).map(row=>[row.membership_id,row]));setRows((members||[]).map(row=>({id:row.id,userId:row.user_id,role:row.role,status:row.status,screenGuides:screenGuideChoice(row.screen_guides),username:row.username||'—',name:row.full_name||'—',email:row.contact_email||'',departmentId:scopeOf.get(row.id)?.department_id||'',departmentName:scopeOf.get(row.id)?.department_name||''})))}catch(e){if(active)notify((e as Error)?.message||tx('Αποτυχία φόρτωσης χρηστών.','Users could not be loaded.'),'error')}finally{if(active)setLoading(false)}})()
   return()=>{active=false}
  },[isDemo,tenant?.id,revision,notify,tx])
  const loadRoster=useCallback(async()=>{if(!tenant?.id)return;setRosterLoading(true);try{setRoster(await loadEmployeeAccounts(tenant.id))}catch(e){notify((e as Error)?.message||tx('Αποτυχία φόρτωσης εργαζομένων.','Employees could not be loaded.'),'error')}finally{setRosterLoading(false)}},[tenant?.id,notify,tx])
@@ -116,27 +119,32 @@ export function ManagementUsersPanel(){const tx=useTx();
  }
  // Totals beside the search (owner, 8/11/2026): active, paused and invited, each a filter; search and role.
  const statusOf=(u: UserRow)=>u.status==='active'?'active':u.status==='disabled'?'disabled':'invited'
+ // Temporary or own password, lock (owner, 23/11/2026): a filter of the totals as the account states are.
+ const passwordOf=(u: UserRow)=>passwordState(access.get(u.userId),u.status==='invited')
+ const matchesStatus=(u: UserRow)=>!statusFilter||statusOf(u)===statusFilter||passwordOf(u)===statusFilter
  const roleOptions=[...new Set(rows.map(u=>u.role).filter(Boolean))]
- const totalsCount=(key: string)=>rows.filter(u=>statusOf(u)===key).length
- const totalItem=(key: string,label: string)=>({key,value:totalsCount(key),label,active:statusFilter===key,onClick:()=>setStatusFilter(current=>current===key?null:key)})
+ const totalsCount=(key: string)=>rows.filter(u=>statusOf(u)===key||passwordOf(u)===key).length
+ const totalItem=(key: string,label: string,tone?: string)=>{const value=totalsCount(key);return {key,value,label,tone:value?tone:undefined,active:statusFilter===key,onClick:()=>setStatusFilter(current=>current===key?null:key)}}
  const totals=<RegistryTotals label={tx('Σύνολα','Totals')} items={[
   {key:'all',always:true,value:rows.length,label:tx('χρήστες','users'),active:!statusFilter,onClick:()=>setStatusFilter(null)},
-  totalItem('active',tx('ενεργοί','active')),
-  totalItem('disabled',tx('σε παύση','paused')),
-  totalItem('invited',tx('εκκρεμείς προσκλήσεις','pending invitations')),
+  totalItem('temporary',tx('προσωρινός κωδικός','temporary password'),'warning'),
+  totalItem('own',tx('δικός τους κωδικός','own password'),'good'),
+  totalItem('locked',tx('κλειδωμένοι','locked'),'danger'),
+  totalItem('disabled',tx('σε παύση','paused'),'danger'),
+  totalItem('invited',tx('εκκρεμείς προσκλήσεις','pending invitations'),'warning'),
  ]}/>
  // Everything the row shows (owner, 19/11/2026: the searches find everything).
- const shown=rows.filter(u=>(!statusFilter||statusOf(u)===statusFilter)&&(roleFilter==='all'||u.role===roleFilter)&&matchesSearch(query,[u.name,u.nameEn,u.email,u.username,t(managementRoleNames[u.role]??u.role),needsDepartment(u.role)?u.departmentName||tx('Χωρίς τμήμα','No department'):'',managementMemberStatusLabel(u.status,language)]))
+ const shown=rows.filter(u=>matchesStatus(u)&&(roleFilter==='all'||u.role===roleFilter)&&matchesSearch(query,[u.name,u.nameEn,u.email,u.username,t(managementRoleNames[u.role]??u.role),needsDepartment(u.role)?u.departmentName||tx('Χωρίς τμήμα','No department'):'',managementMemberStatusLabel(u.status,language),passwordOf(u)?passwordStateLabel(tx,passwordOf(u)!,access.get(u.userId)):'']))
  // A user, or a new user, opens in place of the list (not as a window).
  if(selectedUser)return <><UserAccessView key={selectedUser.userId} user={selectedUser} departments={departments} t={t} busy={busy} readOnly={!canManageRow(selectedUser)} selfProtected={isSelfRow(selectedUser)} previewProtected={isPreviewProtectedRow(selectedUser)} organizationId={tenant?.id} ownerTools={isPlatformOwner&&!isRolePreview} onBack={()=>setSelectedUser(null)} onAction={(a: string,p?: UserActionPayload)=>runAction(selectedUser,a,p)}/>{invitationLink&&<InvitationLinkDialog link={invitationLink.link} name={invitationLink.name} onClose={()=>setInvitationLink(null)}/>}</>
  if(createOpen)return <CreateUserView tenantId={tenant?.id} t={t} busy={busy} isDemo={isDemo} departments={departments} onClose={()=>setCreateOpen(false)} onCreate={createUser}/>
  return <section className="management-section management-scroll-section">{view==='roster'&&<div className="section-toolbar"><div><h2>{t('organizationUsers')}</h2></div>{canManageUsers&&<Button variant="secondary" onClick={()=>setView('accounts')}><ArrowLeft size={15}/>{tx('Λογαριασμοί','Accounts')}</Button>}</div>}{view==='roster'?<BulkAccountsPanel organization={tenant} language={language} roster={roster} loading={rosterLoading} onReload={loadRoster} onAccountsChanged={()=>setRevision(x=>x+1)}/>:<><FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση…','Search…')} activeAdvancedCount={roleFilter!=='all'?1:0} end={<>{totals}{canManageUsers&&<div className="row-actions"><Button variant="secondary" onClick={openRoster}><UsersRound size={15}/>{tx('Μαζική δημιουργία','Bulk creation')}</Button><Button onClick={()=>setCreateOpen(true)}><Plus size={15}/>{t('managementPanel.createUser')}</Button></div>}</>} onClear={()=>{setQuery('');setRoleFilter('all');setStatusFilter(null)}}><FilterSelect label={t('roleLabel')} value={roleFilter} onChange={setRoleFilter}><option value="all">{tx('Όλοι οι ρόλοι','All roles')}</option>{roleOptions.map(role=><option key={role} value={role}>{t(managementRoleNames[role]??role)}</option>)}</FilterSelect></FilterBar><RegistryTable
   wrapperClassName="table-wrap scroll-table"
-  columns={[{key:'user',label:t('users')},{key:'username',label:t('managementPanel.generatedUsernameLabel')},{key:'role',label:t('roleLabel')},{key:'status',label:t('status')}]}
+  columns={[{key:'user',label:t('users')},{key:'username',label:t('managementPanel.generatedUsernameLabel')},{key:'role',label:t('roleLabel')},{key:'status',label:tx('Πρόσβαση','Access')}]}
   rowProps={u=>({className:'registry-row-clickable',tabIndex:0,onClick:()=>setSelectedUser(u),onKeyDown:event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setSelectedUser(u)}}})}
   rows={shown}
   rowKey={u=>u.id}
-  renderRow={u=>{const self=isSelfRow(u),previewProtected=isPreviewProtectedRow(u);return <><td><strong>{language==='en'&&u.nameEn?u.nameEn:u.name}</strong><small>{u.email||'—'}</small>{self&&<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Your account':'Ο λογαριασμός σας'}</span>}{previewProtected&&!self&&<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Administrator account':'Λογαριασμός Διαχειριστή'}</span>}</td><td>{u.username}</td><td><span className="role-badge">{t(managementRoleNames[u.role]??u.role)}</span>{needsDepartment(u.role)&&<small>{u.departmentName||tx('Χωρίς τμήμα','No department')}</small>}</td><td><span className={`status-badge ${u.status==='active'?'active':u.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(u.status,language)}</span></td></>}}
+  renderRow={u=>{const self=isSelfRow(u),previewProtected=isPreviewProtectedRow(u);return <><td><strong>{language==='en'&&u.nameEn?u.nameEn:u.name}</strong><small>{u.email||'—'}</small>{self&&<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Your account':'Ο λογαριασμός σας'}</span>}{previewProtected&&!self&&<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Administrator account':'Λογαριασμός Διαχειριστή'}</span>}</td><td>{u.username}</td><td><span className="role-badge">{t(managementRoleNames[u.role]??u.role)}</span>{needsDepartment(u.role)&&<small>{u.departmentName||tx('Χωρίς τμήμα','No department')}</small>}</td><td><AccessCell stateLabel={managementMemberStatusLabel(u.status,language)} stateTone={u.status==='active'?'active':u.status==='disabled'?'danger':'temporary'} access={access.get(u.userId)} invited={u.status==='invited'} tx={tx}/></td></>}}
 />{loading&&<TableSkeleton/>}</>} {invitationLink&&<InvitationLinkDialog link={invitationLink.link} name={invitationLink.name} onClose={()=>setInvitationLink(null)}/>}{createdUser&&<CreatedUserDialog data={createdUser} onClose={()=>setCreatedUser(null)}/>}</section>
 }
 

@@ -3,6 +3,7 @@ import type { Translate } from '../../types/featureTypes'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { Roster } from './bulkAccountsModel'
 import type { LoginSession } from './platformTypes'
+import type { MemberAccess } from './memberAccess'
 
 export type Setter<T> = Dispatch<SetStateAction<T>>
 
@@ -47,6 +48,9 @@ export type OrganizationMember = {
   invitationCreatedAt: string | null
   invitationExpiresAt: string | null
   createdAt: string | null
+  // Temporary or own password, lock (organization_member_access) and the department, added by the record.
+  access?: MemberAccess | null
+  departmentName?: string
 }
 
 // An employee of the organization (loadEmployeesAsync) as the user record links it: only the fields read.

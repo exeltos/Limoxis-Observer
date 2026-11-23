@@ -465,6 +465,11 @@
       "authenticated": true,
       "reason": "Management › Users: the department of each member of one organization (organization_member_scopes); the organization's admin or the Platform Owner only, since scope RLS shows a user only its own rows."
     },
+    "organization_member_access": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Organization users: whether each member still has the temporary password, its expiry, the lock and the last sign-in; the organization's admin or the Platform Owner only, since profile RLS shows a user only its own row."
+    },
     "set_member_screen_guides": {
       "category": "rpc",
       "authenticated": true,
