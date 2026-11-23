@@ -36,3 +36,13 @@ describe('FileMaker controls created 23/11/2026 (ΙΑΣΩ Θεσσαλίας, ow
     expect(created).toContain('select private.fm_sync_controls();')
   })
 })
+
+describe('the 3 created controls keep their FileMaker start date (Codex, #695)', () => {
+  const fix = readSource('supabase/migrations/20261231635000_fm_three_controls_history_start.sql').replace(/^\s*--.*$/gm, '')
+  it('sets created_at from the FileMaker CreationTimestamp for those 3 controls only', () => {
+    expect(fix).not.toMatch(/\b(drop|delete|revoke|truncate|alter\s+policy)\b/i)
+    expect(fix).toContain("set created_at = (c.data->>'CreationTimestamp')::timestamptz")
+    expect(fix).toContain("def.code in ('FM-CTRL-0011', 'FM-CTRL-1242', 'FM-CTRL-1380')")
+    expect(fix).toContain("l.note = 'created from FileMaker (23/11/2026)'")
+  })
+})
