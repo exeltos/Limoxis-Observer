@@ -75,6 +75,7 @@ export async function loadLevelNames(organizationId: string | null | undefined):
       committees: loadCommittees().map(item => ({ id: item.id, code: item.id, name: item.name, shortName: item.shortName || '' })),
     }
   }
+  if (!organizationId) return { departments: [], committees: [] }
   const [departments, committees] = await Promise.all([
     loadDepartments(organizationId).then(rows => (rows || []).map(row => ({ id: row.id, name: row.name, nameEn: row.name }))).catch(() => []),
     supabase.from('committees').select('id,code,name,short_name').eq('organization_id', organizationId as string).order('name').then(({ data }) => (data || []).map(row => ({ id: row.id, code: row.code, name: row.name, shortName: row.short_name || '' }))),

@@ -110,6 +110,8 @@ const objectiveRow = (objective: ObjectiveDraft, organizationId: string | null |
 
 export async function loadObjectives(organizationId: string | null | undefined) {
   if (isLocal()) return local(OBJECTIVES_KEY, demoObjectives)
+  // Before the hospital has loaded there is nothing to read (no request with organization_id=undefined).
+  if (!organizationId) return []
   const rows = must(await supabase.from('quality_objectives').select('*').eq('organization_id', organizationId as string).order('year', { ascending: false }).order('code'))
   return (rows || []).map(toObjective)
 }
@@ -132,6 +134,7 @@ const toValue = (row: Pick<Tables<'quality_objective_values'>, 'id' | 'objective
 
 export async function loadObjectiveValues(organizationId: string | null | undefined) {
   if (isLocal()) return local('quality_local_objective_values', demoObjectiveValues)
+  if (!organizationId) return []
   const rows = must(await supabase.from('quality_objective_values').select('id,objective_id,month,value').eq('organization_id', organizationId as string).order('month'))
   return (rows || []).map(toValue)
 }

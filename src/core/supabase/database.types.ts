@@ -19456,10 +19456,6 @@ export type Database = {
         Args: { p_organization_id: string; p_user_id: string }
         Returns: undefined
       }
-      temp_get_deviation_library_context: {
-        Args: { p_token: string }
-        Returns: Json
-      }
       touch_login_session: { Args: never; Returns: boolean }
       training_access_certificate: { Args: { p_token: string }; Returns: Json }
       training_access_files: { Args: { p_token: string }; Returns: Json }

@@ -13,7 +13,7 @@ import path from 'node:path'
 const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => (value.startsWith('--') ? [...pairs, [value.slice(2), all[index + 1]]] : pairs), []))
 const root = path.resolve(args.dist || 'dist')
 const ROUTES = ['/', '/patients', '/surveillance', '/laboratory', '/prevention', '/employees', '/quality', '/analysis', '/training', '/committees', '/documents', '/management', '/indicators', '/pharmacy', '/controls', '/my-department', '/occupational-health']
-const WRAP = '<!doctype html><html lang="el"><head><title>a11y</title></head><body style="margin:0"><script>const q=new URLSearchParams(location.search);document.write(`<iframe title="Limoxis Observer" src="${q.get("r")}?helpPreview=1&helpLang=${q.get("l")}" style="border:0;width:100vw;height:100vh"></iframe>`)</script></body></html>'
+const WRAP = '<!doctype html><html lang="el"><head><title>a11y</title></head><body style="margin:0"><script>const q=new URLSearchParams(location.search);document.write(`<iframe title="Limoxis Observer" src="${q.get("r")}${q.get("r").includes("?")?"&":"?"}helpPreview=1&helpLang=${q.get("l")}" style="border:0;width:100vw;height:100vh"></iframe>`)</script></body></html>'
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json' }
 
 if (!fs.existsSync(path.join(root, 'index.html'))) { console.error(`No build found in ${root}: run npm run build`); process.exit(2) }
@@ -37,7 +37,8 @@ for (const lang of ['el', 'en']) for (const route of ROUTES) states.push({ lang,
 for (const route of ['/surveillance', '/laboratory', '/quality', '/employees', '/prevention', '/documents', '/committees', '/training', '/occupational-health', '/management']) states.push({ lang: 'el', route, act: 'create' })
 for (const route of ['/surveillance', '/laboratory', '/patients']) states.push({ lang: 'el', route, act: 'filters' })
 states.push({ lang: 'el', route: '/', act: 'notifications' })
-for (const lang of ['el', 'en']) states.push({ lang, route: '/executive?tab=reporting', act: 'reporting' })
+// The data quality checks live in Laboratory › Notifiable diseases › «⋯» (owner, 2/11/2026), no longer in Executive › reporting.
+for (const lang of ['el', 'en']) states.push({ lang, route: '/laboratory?tab=notifiable&helpRole=hospital_admin', act: 'reporting' })
 for (let tab = 0; tab < 5; tab++) states.push({ lang: 'el', route: '/surveillance', act: 'record', tab })
 const dismissBriefing = async frame => { const button = frame.locator('.login-briefing-dialog button').first(); if (await button.count()) await button.click({ timeout: 2000 }).catch(() => {}) }
 const violations = []
@@ -52,7 +53,8 @@ for (const { lang, route, act, tab } of states) {
     if (act === 'create') await frame.locator('.page-actions button, .page-header button.primary, button:has-text("Δημιουργία"), button:has-text("Νέ")').first().click({ timeout: 2500 })
     if (act === 'filters') await frame.locator('button:has-text("Φίλτρα")').first().click({ timeout: 2500 })
     if (act === 'notifications') await frame.locator('.notification-button').first().click({ timeout: 2500 })
-    if (act === 'reporting') { const details = frame.locator('.reporting-check details').first(); await details.waitFor({ state: 'attached', timeout: 8000 }); await details.evaluate(el => { el.open = true }) }
+    // Data quality: open the first failing check; when every check passes the panel shows «Όλοι οι έλεγχοι πέρασαν» instead.
+    if (act === 'reporting') { await frame.locator('button[aria-label="Περισσότερες ενέργειες"], button[aria-label="More actions"]').first().click({ timeout: 4000 }); await frame.locator('[role=menuitem]').first().click({ timeout: 2500 }); await frame.locator('.reporting-check details, .reporting-ok').first().waitFor({ state: 'attached', timeout: 8000 }); const details = frame.locator('.reporting-check details'); if (await details.count()) await details.first().evaluate(el => { el.open = true }) }
     if (act === 'record') {
       await frame.locator('tbody tr').first().click({ timeout: 3000 }); await page.waitForTimeout(1500); await dismissBriefing(frame)
       const tabs = await frame.locator('[role=tab]').all()
