@@ -152,6 +152,8 @@ async function loadOwnSurveys(organizationId: string | null | undefined): Promis
     const state = local()
     return state.surveys.map(survey => { const own = state.responses.filter(response => response.surveyId === survey.id); return { ...survey, responseCount: own.length, recentCount: own.filter(response => response.submittedAt >= since).length } })
   }
+  // Before the hospital has loaded there is nothing to read (no request with organization_id=undefined).
+  if (!organizationId) return []
   // The surveys and every survey's counts in two reads side by side
   // (quality_survey_response_counts, 20261201110000), not two counts per survey.
   const [surveyRows, counted] = await Promise.all([
