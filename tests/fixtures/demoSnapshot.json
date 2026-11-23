@@ -10,6 +10,11 @@
     "employee_certificates": 255,
     "employee_evaluations": 202,
     "patient_admissions": 58,
-    "laboratory_samples": 82
+    "laboratory_samples": 82,
+    "control_definitions": 6,
+    "control_assignments": 24,
+    "control_executions": 362,
+    "indicator_snapshots": 118,
+    "antibiotic_dispensing_periods": 360
   }
 }
