@@ -12,4 +12,13 @@ union all select 'control_definitions', count(*)::int from control_definitions w
 union all select 'control_assignments', count(*)::int from control_assignments where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
 union all select 'control_executions', count(*)::int from control_executions where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
 union all select 'indicator_snapshots', count(*)::int from indicator_snapshots where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
-union all select 'antibiotic_dispensing_periods', count(*)::int from antibiotic_dispensing_periods where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735';
+union all select 'antibiotic_dispensing_periods', count(*)::int from antibiotic_dispensing_periods where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'quality_incidents', count(*)::int from quality_incidents where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'quality_findings', count(*)::int from quality_findings where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'quality_capa_actions', count(*)::int from quality_capa_actions where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'quality_audits', count(*)::int from quality_audits where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'surveillance_cases', count(*)::int from surveillance_cases where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'hand_hygiene_sessions', count(*)::int from hand_hygiene_sessions where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'department_registers', count(*)::int from department_registers where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'kitchen_receipts', count(*)::int from kitchen_receipts where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735'
+union all select 'hr_candidates', count(*)::int from hr_candidates where organization_id = '9fdc7fb5-c514-41c0-8fac-0b39ba0c8735';

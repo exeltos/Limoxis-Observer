@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-11-23",
+  "takenAt": "2026-11-24",
   "organization": "Demo Νοσοκομείο (9fdc7fb5-c514-41c0-8fac-0b39ba0c8735)",
   "source": "docs/sql/demo_snapshot_counts.sql",
   "counts": {
@@ -15,6 +15,15 @@
     "control_assignments": 24,
     "control_executions": 362,
     "indicator_snapshots": 118,
-    "antibiotic_dispensing_periods": 360
+    "antibiotic_dispensing_periods": 360,
+    "quality_incidents": 40,
+    "quality_findings": 17,
+    "quality_capa_actions": 15,
+    "quality_audits": 17,
+    "surveillance_cases": 40,
+    "hand_hygiene_sessions": 36,
+    "department_registers": 7,
+    "kitchen_receipts": 7,
+    "hr_candidates": 14
   }
 }

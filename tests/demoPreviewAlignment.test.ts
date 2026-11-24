@@ -6,6 +6,12 @@ import { laboratorySamples } from '../src/features/laboratory/laboratoryDemoData
 import { controlAssignmentRows, controlDefinitionRows, controlExecutionRows } from '../src/features/controls/controlDemoData'
 import { indicatorSnapshotRows } from '../src/features/indicators/indicatorDemoData'
 import { antibioticDispensingRows } from '../src/features/pharmacy/pharmacyDemoData'
+import { qualityAudits, qualityCapas, qualityFindings, qualityIncidents } from '../src/features/quality/qualityDemoData'
+import { handHygieneRows } from '../src/features/prevention/preventionDemoData'
+import { demoSurveillanceList } from '../src/features/surveillance/clinicalDemoData'
+import { demoRegisters } from '../src/features/registers/registerDemoData'
+import { kitchenDemoState } from '../src/features/kitchen/kitchenDemoData'
+import { interviewsDemoState } from '../src/features/interviews/interviewsDemoData'
 
 // The help preview (no sign-in) keeps its own sample data (*DemoData.ts). Each section is compared with the real
 // Demo's counts (tests/fixtures/demoSnapshot.json, from docs/sql/demo_snapshot_counts.sql) so that the two do not
@@ -56,5 +62,28 @@ describe('the preview matches the real Demo', () => {
     expect(antibioticDispensingRows.length).toBe(114)
     expect(new Set(antibioticDispensingRows.map((row) => row.period)).size).toBeGreaterThanOrEqual(12)
     expect(counts.antibiotic_dispensing_periods).toBe(360)
+  })
+  // The other sections, measured on 24/11/2026 (preview / Demo). The preview keeps a richer history for the help
+  // screens; the Demo got 12 months of incidents and closed surveillance episodes (20261231636000). Pinned, so that a
+  // change on either side is looked at.
+  it('quality: incidents 90 / 40, findings 38 / 17, corrective actions 40 / 15, audits 46 / 17', () => {
+    expect([qualityIncidents.length, qualityFindings.length, qualityCapas.length, qualityAudits.length]).toEqual([90, 38, 40, 46])
+    expect([counts.quality_incidents, counts.quality_findings, counts.quality_capa_actions, counts.quality_audits]).toEqual([40, 17, 15, 17])
+  })
+  it('surveillance episodes: 54 / 40', () => {
+    expect((demoSurveillanceList() as unknown[]).length).toBe(54)
+    expect(counts.surveillance_cases).toBe(40)
+  })
+  it('hand hygiene sessions 64 / 36, department registers 10 / 7', () => {
+    expect(handHygieneRows.length).toBe(64)
+    expect(counts.hand_hygiene_sessions).toBe(36)
+    expect((demoRegisters() as unknown[]).length).toBe(10)
+    expect(counts.department_registers).toBe(7)
+  })
+  it('kitchen receipts 129 / 7, interview candidates 23 / 14', () => {
+    expect((kitchenDemoState() as { receipts: unknown[] }).receipts.length).toBe(129)
+    expect(counts.kitchen_receipts).toBe(7)
+    expect((interviewsDemoState() as { candidates: unknown[] }).candidates.length).toBe(23)
+    expect(counts.hr_candidates).toBe(14)
   })
 })
