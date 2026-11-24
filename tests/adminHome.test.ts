@@ -69,10 +69,11 @@ describe('«Χρειάζονται και αυτά απόφαση»', () => {
   it('leaves out what the figures already show and adds objectives, minutes, expiring supplier certificates and training requests', () => {
     const all = { expiredCertificates: 4, overdueControls: 3, overdueCapa: 2, awaitingReview: 7, criticalUncommunicated: 1, pendingApprovals: 2, missedObjectives: 1, pendingMinutes: 2, expiringCertificates: 5, trainingRequests: 3, kitchenUnverifiedDays: 0 }
     const items = otherDecisionItems(all)
-    expect(items.map(item => item.key)).toEqual(['criticalUncommunicated', 'pendingApprovals', 'missedObjectives', 'pendingMinutes', 'expiringCertificates', 'trainingRequests'])
-    expect(items[0]).toMatchObject({ title: 'Κρίσιμα χωρίς ενημέρωση', count: 1, urgent: true })
-    expect(otherDecisionItems(all, { moduleEnabled: module => module !== 'training', canOpen: to => to !== '/meetings', language: 'en' }).map(item => item.title)).toEqual(['Critical results not communicated', 'Antimicrobials to approve', 'Objectives not met', 'Suppliers: expiring in 30 days'])
-    expect(otherDecisionItems({ expiredCertificates: 4, overdueControls: 3 })).toEqual([])
+    // The expired supplier certificates left the figures for this list (owner, 24/11/2026): urgent, first.
+    expect(items.map(item => item.key)).toEqual(['expiredCertificates', 'criticalUncommunicated', 'pendingApprovals', 'missedObjectives', 'pendingMinutes', 'expiringCertificates', 'trainingRequests'])
+    expect(items[1]).toMatchObject({ title: 'Κρίσιμα χωρίς ενημέρωση', count: 1, urgent: true })
+    expect(otherDecisionItems(all, { moduleEnabled: module => module !== 'training', canOpen: to => to !== '/meetings', language: 'en' }).map(item => item.title)).toEqual(['Expired supplier certificates', 'Critical results not communicated', 'Antimicrobials to approve', 'Objectives not met', 'Suppliers: expiring in 30 days'])
+    expect(otherDecisionItems({ overdueCapa: 4, overdueControls: 3 })).toEqual([])
   })
 })
 
@@ -123,13 +124,27 @@ describe('«Η εβδομάδα»', () => {
   })
 })
 
-describe('the samples to review on the administrator home', () => {
-  it('counts them from a light read and leaves the figure out when it cannot be read', () => {
+describe('the hospital\'s period on the administrator home (owner, 24/11/2026)', () => {
+  it('reads the period figures for the whole hospital and shows the period controls', () => {
+    const page = readSource('src/features/dashboard/DashboardPage.tsx')
+    expect(page).toContain('const periodDepartments=adminHome?null:membership?.departmentIds')
+    expect(page).toContain('loadDepartmentHomeOverview(tenant?.id,periodDepartments,periodWindow)')
+    expect(page).toContain("collectDemoDepartmentHome({department:adminHome?null:department,window:periodWindow})")
+    expect(page).toContain('<AdminHome language={language} overview={overview} window={periodWindow} status={overviewStatus}')
+    expect(page.match(/actions=\{<DepartmentPeriodControls /g)?.length).toBe(2)
+  })
+  it('counts the samples to review in the period figures, with no list read', () => {
     const page = readSource('src/features/dashboard/DashboardPage.tsx')
     expect(page).toContain('useSamplesAwaitingReview({enabled:reviewCard&&!adminHome')
-    expect(page).toContain('awaitingReview:reviewCard?awaitingReviewCount:null')
-    expect(readSource('src/features/laboratory/hooks/useSamplesAwaitingReviewCount.ts')).toContain('countSamplesAwaitingReview(tenant?.id)')
+    expect(page).not.toContain('useSamplesAwaitingReviewCount')
     expect(adminHomeTiles({}, { awaitingReview: null }).map(tile => tile.key)).not.toContain('awaitingReview')
+  })
+  it('shows the four period figures, the overdue corrective actions, the chart, the hospital organisms and the busy days', () => {
+    const home = readSource('src/features/dashboard/AdminHome.tsx')
+    expect(home).toContain('...periodTiles(overview, { language, moduleEnabled })')
+    expect(home).toContain("<PositivesChart rows={overview?.positivesSeries || []}")
+    expect(home).toContain("title={tr('Μικρόβια του νοσοκομείου', 'Hospital organisms')}")
+    expect(home).toContain('const busyDays = (week || []).filter(day => day.today || day.chips.length > 0)')
   })
 })
 

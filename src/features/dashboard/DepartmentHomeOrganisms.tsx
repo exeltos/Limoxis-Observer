@@ -7,8 +7,8 @@ import type { DepartmentHomeOverview } from './departmentHomeModel'
 // samples, patients, MDR/XDR and kinds of organism, then the 4 most frequent organisms with a bar (MDR/XDR in the
 // colour of the weekly chart), the difference from the comparison period («+2», «−1», nothing when equal) and one
 // line for the rest. A fixed number of lines: the card never scrolls.
-interface OrganismsCardProps { overview: DepartmentHomeOverview | null, loading: boolean, language: string, action: ReactNode, periodText: string, comparing?: boolean }
-export function OrganismsCard({ overview: o, loading, language, action, periodText, comparing = true }: OrganismsCardProps) {
+interface OrganismsCardProps { overview: DepartmentHomeOverview | null, loading: boolean, language: string, action: ReactNode, periodText: string, comparing?: boolean, title?: string }
+export function OrganismsCard({ overview: o, loading, language, action, periodText, comparing = true, title }: OrganismsCardProps) {
   const en = language === 'en'
   const tr = (el: string, enText: string) => en ? enText : el
   const number = (value: number | null | undefined) => loading || value == null ? '—' : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
@@ -22,7 +22,7 @@ export function OrganismsCard({ overview: o, loading, language, action, periodTe
     [number(o?.organismsCount), tr('είδη μικροβίων', 'kinds of organism'), false],
   ]
   return <Card className="dashboard-card dephome-organisms">
-    <CardHeader title={tr('Μικρόβια του τμήματος', 'Department organisms')} subtitle={periodText} actions={action}/>
+    <CardHeader title={title || tr('Μικρόβια του τμήματος', 'Department organisms')} subtitle={periodText} actions={action}/>
     <dl className="dephome-organism-figures">{figures.map(([value, label, danger]) => <div key={label}><dt>{label}</dt><dd className={danger ? 'is-danger' : undefined}>{value}</dd></div>)}</dl>
     {rows.length ? <ul className="dephome-organism-list">
       {rows.map(row => <li key={row.organism}>
