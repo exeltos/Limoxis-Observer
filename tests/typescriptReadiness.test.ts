@@ -14,6 +14,13 @@ describe('TypeScript, step 1: the tests and the tools follow a file that changes
     expect(eslint).toContain("files: ['src/**/*.{ts,tsx}']")
     expect(eslint).toContain("'src/core/supabase/database.types.ts'")
   })
+  it('the main tsconfig is strict too (owner, 24/11/2026): the editor and `tsc -p .` show what CI checks', () => {
+    const main = readSource('tsconfig.json')
+    expect(main).toContain('"strict": true,')
+    expect(main).toContain('"noImplicitAny": true,')
+    // The tests keep their looser check until they are made strict on their own.
+    expect(readSource('tsconfig.tests.json')).toContain('"strict": false,')
+  })
   it('step 2: the design system is TypeScript and in the strict compiler run', () => {
     const files = fs.readdirSync(new URL('../src/design-system/', import.meta.url)).filter(name => /\.(js|jsx|ts|tsx)$/.test(name))
     expect(files.length).toBeGreaterThan(70)
