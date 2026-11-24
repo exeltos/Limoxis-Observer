@@ -1,6 +1,6 @@
 -- Demo «μία πηγή» (ιδιοκτήτης, 24/11/2026, επιλογή Β): το πραγματικό Demo είχε 10 συμβάντα ποιότητας και 18 επεισόδια
--- επιτήρησης, ενώ η προεπισκόπηση της βοήθειας δείχνει 90 και 54. Δύο νέες συναρτήσεις γεμίζουν το ιστορικό των
--- τελευταίων 12 μηνών, και καλούνται από τις υπάρχουσες (demo_seed_quality, demo_seed_clinical), ώστε να ξαναμπαίνουν
+-- επιτήρησης, ενώ η προεπισκόπηση της βοήθειας δείχνει 90 και 54. Δύο νέες συναρτήσεις: συμβάντα των τελευταίων
+-- 12 μηνών και κλειστά επεισόδια επιτήρησης στις (πρόσφατες) νοσηλείες των ασθενών του Demo. Καλούνται από τις υπάρχουσες (demo_seed_quality, demo_seed_clinical), ώστε να ξαναμπαίνουν
 -- σε κάθε «Επαναφορά δεδομένων». Μόνο προσθήκες· ξανατρέχουν χωρίς διπλά (κωδικός συμβάντος, ασθενής χωρίς επεισόδιο).
 
 -- 30 συμβάντα σε 12 μήνες: πτώσεις, φάρμακα, εξοπλισμός, διαδικασίες, προσωπικό, παράπονα, εγκαταστάσεις.
@@ -18,12 +18,14 @@ declare
 begin
   if coalesce(array_length(v_depts, 1), 0) = 0 then return; end if;
   insert into public.quality_incidents(organization_id, code, title, department_id, occurred_at, severity, status, description, category, impact,
-    incident_class, reached_patient, harm_occurred, immediate_actions, owner_label, owner_labels, reported_by_label)
+    incident_class, reached_patient, harm_occurred, immediate_actions, owner_label, owner_labels, reported_by_label, report_kind)
   select p_organization_id, 'INC-' || to_char(d0 - t.ago, 'YYMMDD') || '-' || lpad((91000 + t.n)::text, 6, '0'), t.title,
     v_depts[1 + (t.n % array_length(v_depts, 1))], (d0 - t.ago) + time '10:40', t.sev,
     case when t.ago > 45 then 'closed' when t.n % 3 = 0 then 'under_review' else 'reported' end,
     t.descr, t.cat, t.imp, t.cls, t.cls <> 'nearMiss', t.cls = 'harmful',
-    'Άμεση ενημέρωση υπευθύνου και καταγραφή', 'Υπεύθυνη Ποιότητας', array['Υπεύθυνη Ποιότητας'], 'Νοσηλευτική Υπηρεσία'
+    'Άμεση ενημέρωση υπευθύνου και καταγραφή', 'Υπεύθυνη Ποιότητας', array['Υπεύθυνη Ποιότητας'], 'Νοσηλευτική Υπηρεσία',
+    -- The kind of report from the category, as the app reads it (qualityVocabulary CATEGORY_KIND), Codex #701.
+    case when t.cat = 'complaint' then 'complaint' when t.cat in ('clinical', 'medication') then 'clinical' else 'nonClinical' end
   from (values
     (1, 70, 'Πτώση ασθενούς στο μπάνιο', 'medium', 'Ασθενής γλίστρησε στο μπάνιο του θαλάμου.', 'clinical', 'minor', 'harmful'),
     (2, 78, 'Παράλειψη δόσης ινσουλίνης', 'high', 'Δεν χορηγήθηκε η βραδινή δόση ινσουλίνης.', 'medication', 'minor', 'noHarm'),
@@ -61,6 +63,7 @@ end
 $fn$;
 
 -- 22 κλειστά επεισόδια επιτήρησης σε ασθενείς χωρίς κανένα επεισόδιο: υποψία που αποκλείστηκε μετά την παρακολούθηση.
+-- Στις ημερομηνίες νοσηλείας τους, άρα στους τελευταίους μήνες (οι νοσηλείες του Demo είναι πρόσφατες).
 -- Χωρίς ταξινόμηση ΛΣΦΥ, ώστε να μην αλλάζουν οι δείκτες λοιμώξεων του Demo.
 create or replace function private.demo_seed_surveillance_history(p_organization_id uuid, p_actor uuid)
 returns void
@@ -111,7 +114,7 @@ begin
   perform private.demo_seed_quality_indicators(p_organization_id, p_actor);
   perform private.demo_seed_quality_risks(p_organization_id, p_actor);
   perform private.demo_seed_quality_audit_programme(p_organization_id, p_actor);
-  -- Ιστορικό 12 μηνών (24/11/2026).
+  -- Συμβάντα 12 μηνών (24/11/2026).
   perform private.demo_seed_incidents_history(p_organization_id, p_actor);
 end;
 $fn$;
