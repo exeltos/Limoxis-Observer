@@ -1,17 +1,23 @@
-/* The administrator's home: five figures (the department home's tiles), then two columns in one screen. The page does
-   not scroll on a computer or tablet: the departments show the bars that fit, the week has seven lines that share its card. */
+/* The administrator's home (owner, 24/11/2026): the hospital's five figures for the period, then two rows of cards in one
+   screen. The page does not scroll on a computer or tablet: the departments show the bars that fit; the decisions and the
+   week scroll inside their cards. */
 .dashboard-page.page-fill>.adminhome{flex:1 1 0;min-height:0}
-.adminhome{display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;min-height:0}
-.adminhome:not(:has(>.dephome-tiles)){grid-template-rows:minmax(0,1fr)}
-.adminhome-columns{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;min-height:0}
-.adminhome-stack{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px;min-height:0}
-.adminhome-stack:not(:has(>.adminhome-week)){grid-template-rows:auto}
+.adminhome{display:flex;flex-direction:column;gap:12px;min-height:0}
+.adminhome>.dephome-tiles,.adminhome>.dephome-error{flex:none}
+.adminhome-columns{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:12px;min-height:0}
+.adminhome-columns:not(:has(>.adminhome-attention)){grid-template-columns:minmax(0,1fr)}
+/* The positive samples per week, the hospital's organisms and the week. */
+.adminhome-lower{flex:1.1 1 0;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
+.adminhome-lower:not(:has(>.dephome-chart-card)){grid-template-columns:minmax(0,1fr)}
+/* The chart's legend on its own line under the title, so the title keeps one line. */
+.adminhome-chart-legend{flex:none;margin:0 0 4px}
 .adminhome .dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
 .adminhome .dashboard-card .lo-card-header{margin:0 0 8px;padding:0 0 8px}
 
 /* «Τμήματα με τις περισσότερες εκκρεμότητες»: one stacked bar per department (red controls, amber corrective actions,
    slate staff certificates), scaled to the largest total, as many as fit (up to eight). */
 .adminhome-bars{flex:1 1 auto;min-height:84px;overflow:hidden;display:flex;flex-direction:column}
+.adminhome-bars>.adminhome-legend{margin-top:8px}
 .adminhome-bar-row{flex:none;display:grid;grid-template-columns:minmax(96px,30%) minmax(0,1fr) 40px;align-items:center;gap:10px;height:28px;padding:0 4px;border:0;border-radius:6px;background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
 .adminhome-bar-row:hover:not(:disabled){background:var(--lo-shell-control-hover)}
 .adminhome-bar-row:disabled{cursor:default}
@@ -27,11 +33,8 @@
 .adminhome-legend li{display:inline-flex;align-items:center;gap:6px}
 .adminhome-legend i{width:10px;height:10px;border-radius:3px}
 
-/* «Χρειάζονται και αυτά απόφαση»: only what the figures do not show, two columns of short lines. */
-.adminhome-others{flex:none;margin-top:10px;padding-top:8px;border-top:1px solid var(--lo-color-border)}
-.adminhome-attention>.adminhome-others:only-of-type{flex:1 1 auto;min-height:0;overflow:auto;margin-top:0;padding-top:0;border-top:0}
-.adminhome-others h3{margin:0 0 4px;font-size:12.5px;font-weight:700;color:var(--lo-color-muted)}
-.adminhome-decisions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;margin:0;padding:0;list-style:none}
+/* «Χρειάζονται απόφαση»: only what the figures do not show, one column of short lines that scrolls inside the card. */
+.adminhome-decisions{flex:1 1 auto;min-height:0;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr);align-content:start;margin:0;padding:0;list-style:none}
 .adminhome-decisions button{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;height:30px;padding:0 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
 .adminhome-decisions button:hover{background:var(--lo-shell-control-hover)}
 .adminhome-decision-dot{width:8px;height:8px;border-radius:50%;background:var(--lo-color-warning)}
@@ -41,11 +44,11 @@
 .adminhome-decisions b.is-danger{color:var(--lo-color-danger)}
 .adminhome-decisions-empty{margin:4px 0 0;font-size:12.5px;color:var(--lo-color-muted)}
 
-/* «Η εβδομάδα»: seven lines sharing the card, the day and its chips in the calendar's colours. */
-.adminhome-week-days{flex:1 1 auto;min-height:0;display:grid;grid-template-rows:repeat(7,minmax(0,1fr));margin:0;padding:0;list-style:none}
+/* «Η εβδομάδα»: today and the days that have something, the day and its chips in the calendar's colours. */
+.adminhome-week-days{flex:1 1 auto;min-height:0;overflow:auto;margin:0;padding:0;list-style:none}
 .adminhome-week-days>li{min-height:0;border-bottom:1px solid var(--lo-color-border)}
 .adminhome-week-days>li:last-child{border-bottom:0}
-.adminhome-week-days button{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:10px;width:100%;height:100%;min-height:30px;padding:0 4px;border:0;background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.adminhome-week-days button{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:10px;width:100%;height:32px;padding:0 4px;border:0;background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
 .adminhome-week-days button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
 .adminhome-week-days button:disabled{cursor:default}
 .adminhome-week-label{font-size:12.5px;font-weight:700;color:var(--lo-color-muted);white-space:nowrap}
@@ -60,20 +63,26 @@
 .adminhome-chip.is-meetings{--adminhome-chip:var(--lo-calendar-meetings)}
 .adminhome-chip.is-expiries{--adminhome-chip:var(--lo-calendar-expiries)}
 
-/* The announcements in one line. */
-.adminhome-announcement-line{margin:0;font-size:12.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.adminhome-announcement-line strong{color:var(--lo-color-text)}
+/* The announcements in one line under the week: the unread count and the latest title open them; «Σήμανση όλων» beside. */
+.adminhome-announcement-line{flex:none;display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid var(--lo-color-border)}
+.adminhome-announcement-open{flex:1 1 auto;display:flex;align-items:center;gap:6px;min-width:0;padding:2px 0;border:0;background:transparent;color:var(--lo-color-muted);font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.adminhome-announcement-open>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-announcement-open strong{color:var(--lo-color-text)}
+.adminhome-announcement-open:hover strong{text-decoration:underline}
+.adminhome-announcement-line .text-button{flex:none}
 
 /* A tablet keeps the two columns, with smaller figures so the tiles' words fit. */
 @media(max-width:1180px){.adminhome .dephome-tile{padding:9px 11px}.adminhome .dephome-tile-label,.adminhome .dephome-tile-detail{font-size:11.5px}.adminhome .dephome-tile-value{font-size:22px}
   .adminhome .dashboard-card .lo-card-heading small,.adminhome .dashboard-card .lo-card-icon{display:none}
   .adminhome-week-days button{grid-template-columns:54px minmax(0,1fr);gap:8px}
-  .adminhome-decisions{column-gap:10px}.adminhome-decisions button{gap:6px;padding:0 2px}.adminhome-decision-title{font-size:12px}
-  /* «Σήμανση όλων» keeps its bell only (its words stay its accessible name), so the title has the card's width. */
-  .adminhome-announcements .lo-card-actions .text-button:first-child:not(:last-child){font-size:0;gap:0}}
+  .adminhome-decisions button{gap:6px;padding:0 2px}.adminhome-decision-title{font-size:12px}
+  /* The organisms keep their lines (the period's counts are in the first figure already); the legend in smaller words. */
+  .adminhome-columns{flex:1.25 1 0}.adminhome .dephome-organism-figures{display:none}.adminhome-legend{gap:2px 10px;font-size:11px}
+  /* The lower row: the chart wider, the organisms and the week narrower. */
+  .adminhome-lower{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.9fr)}}
 /* Phone (or a short window): everything stacks and the page scrolls. */
-@media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome{display:flex;flex-direction:column}.adminhome-columns{grid-template-columns:1fr}.adminhome-stack{grid-template-rows:auto}.adminhome-bars{flex:none}.adminhome-week-days{grid-template-rows:none}.adminhome-week-days button{height:36px}}
-@media(max-width:760px){.adminhome .dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.adminhome-decisions{grid-template-columns:1fr}}
+@media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome-columns,.adminhome-lower{flex:none;grid-template-columns:1fr}.adminhome-bars{flex:none}.adminhome-lower .dephome-chart{height:190px;flex:none}.adminhome-week-days button{height:36px}}
+@media(max-width:760px){.adminhome .dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .adminhome-announcement-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
 .adminhome-announcement-list li{padding:10px 0;border-bottom:1px solid var(--lo-color-border)}
 .adminhome-announcement-list p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}

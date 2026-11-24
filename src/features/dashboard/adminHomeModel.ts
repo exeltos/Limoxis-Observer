@@ -34,13 +34,15 @@ export function decisionItems(metrics: Metrics = {}, { moduleEnabled = () => tru
     .sort((a, b) => Number(b.urgent) - Number(a.urgent))
 }
 
-// «Χρειάζονται και αυτά απόφαση» (owner, 21/11/2026): only what the five figures do not already show — no expired
-// certificates, overdue controls, overdue corrective actions or samples to review — with the objectives off course,
+// «Χρειάζονται απόφαση» (owner, 21/11/2026; 24/11/2026 the expired supplier certificates left the figures for it): only
+// what the five figures do not already show — no overdue controls, overdue corrective actions or samples to review —
+// with the objectives off course,
 // the minutes pending, supplier certificates expiring within 30 days and the training participation requests.
 // missedObjectives and trainingRequests are counted by the home (they are not in dashboard_metrics).
-export const TILE_DECISION_KEYS: ReadonlySet<string> = new Set(['expiredCertificates', 'overdueControls', 'overdueCapa', 'awaitingReview'])
+export const TILE_DECISION_KEYS: ReadonlySet<string> = new Set(['overdueControls', 'overdueCapa', 'awaitingReview'])
 // Short titles: two columns of them fit the card on a tablet (the full title stays in each line's tooltip).
 export const HOME_DECISION_ITEMS: readonly DecisionItem[] = Object.freeze([
+  ['expiredCertificates', 'Ληγμένα πιστοποιητικά προμηθευτών', 'Expired supplier certificates', '/quality?tab=resources', 'suppliers'],
   ['criticalUncommunicated', 'Κρίσιμα χωρίς ενημέρωση', 'Critical results not communicated', '/laboratory', 'laboratory'],
   ['pendingApprovals', 'Αντιμικροβιακές προς έγκριση', 'Antimicrobials to approve', '/pharmacy', 'pharmacy'],
   ['missedObjectives', 'Στόχοι που δεν επιτυγχάνονται', 'Objectives not met', '/quality/measures', ''],

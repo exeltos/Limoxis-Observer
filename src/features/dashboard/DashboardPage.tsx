@@ -31,7 +31,6 @@ import { hospitalToday } from '../../core/dates/hospitalDate'
 import { departmentOverdueCount, departmentWeek, ownCertificatesDue, ownTrainings, todayTaskCount } from './userHomeModel'
 import { loadDepartmentIsolationCount } from './userHomeService'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
-import { useSamplesAwaitingReviewCount } from '../laboratory/hooks/useSamplesAwaitingReviewCount'
 import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { lazyPage } from '../../core/errors/chunkRecovery'
@@ -159,30 +158,31 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   // the Demo counts its sample records. A failed read shows the error line and empty figures, never the Demo's.
   const departmentPeriod=useDepartmentHomeWindow()
   const periodWindow=departmentPeriod.window
-  const [departmentOverview,setDepartmentOverview]=useState<{data: DepartmentHomeOverview | null, status: 'loading' | 'ready' | 'error'}>(()=>{const kept=departmentHome&&!isDemo?peekDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow):null;return kept?{data:kept,status:'ready'}:{data:null,status:'loading'}})
-  const demoOverview=useMemo(()=>departmentHome&&isDemo?collectDemoDepartmentHome({department,window:periodWindow}):null,[departmentHome,isDemo,department,periodWindow])
+  // The administrator's home reads the same figures for the whole hospital (no departments: all of them).
+  const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
+  const periodHome=departmentHome||adminHome
+  const periodDepartments=adminHome?null:membership?.departmentIds
+  const [departmentOverview,setDepartmentOverview]=useState<{data: DepartmentHomeOverview | null, status: 'loading' | 'ready' | 'error'}>(()=>{const kept=periodHome&&!isDemo?peekDepartmentHomeOverview(tenant?.id,periodDepartments,periodWindow):null;return kept?{data:kept,status:'ready'}:{data:null,status:'loading'}})
+  const demoOverview=useMemo(()=>periodHome&&isDemo?collectDemoDepartmentHome({department:adminHome?null:department,window:periodWindow}):null,[periodHome,adminHome,isDemo,department,periodWindow])
   useEffect(()=>{
     let active=true
-    if(!departmentHome||isDemo)return()=>{active=false}
+    if(!periodHome||isDemo)return()=>{active=false}
     // A period read a moment ago shows at once; a new period clears the figures until its own answer arrives: never the
     // previous period under the new labels.
-    const kept=peekDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow)
+    const kept=peekDepartmentHomeOverview(tenant?.id,periodDepartments,periodWindow)
     if(kept){setDepartmentOverview({data:kept,status:'ready'});return()=>{active=false}}
     setDepartmentOverview({data:null,status:'loading'})
-    loadDepartmentHomeOverview(tenant?.id,membership?.departmentIds,periodWindow).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
+    loadDepartmentHomeOverview(tenant?.id,periodDepartments,periodWindow).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
     return()=>{active=false}
-  },[departmentHome,isDemo,tenant?.id,membership?.departmentIds,periodWindow])
+  },[periodHome,isDemo,tenant?.id,periodDepartments,periodWindow])
   const overview=demoOverview||departmentOverview.data
   const overviewStatus=demoOverview?'ready':departmentOverview.status
   const values: Metrics=demo?demo.metrics:metrics
   const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
   // «Προς έλεγχο (N)»: new positive samples with no episode and no decision, for the infection-control roles.
   const reviewCard=showKpis&&!department&&canReviewSamples(role)&&menuPaths.has('/surveillance')
-  const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
-  // The administrator's figure only counts them (a light read): the whole list of a hospital with thousands of undecided
-  // positives took over half a minute and the figure stayed on «…».
+  // The administrator's home counts them in its period figures (positives «προς έλεγχο»): no list read there.
   const awaitingReview=useSamplesAwaitingReview({enabled:reviewCard&&!adminHome&&Boolean(isDemo||tenant?.id)})
-  const awaitingReviewCount=useSamplesAwaitingReviewCount({enabled:reviewCard&&adminHome&&Boolean(isDemo||tenant?.id)})
   const tasks=nctx.operational
   // A tile opens a screen of the menu; a tab of a merged section (?tab=) only when the role may open that tab.
   const canOpen=(to: string | null | undefined)=>{const [path,search='']=String(to||'').split('?');if(!menuPaths.has(path))return false;const tab=new URLSearchParams(search).get('tab');const section=Object.keys(SECTION_TABS).find(id=>SECTION_TABS[id].path===path);return !tab||!section||sectionTabsFor(section,{role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[]}).some(item=>item.id===tab)}
@@ -300,15 +300,17 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   </Page>
 
   if(adminHome){
-    const tileSources={loading:metricsState==='loading'||(reviewCard&&awaitingReviewCount===undefined),awaitingReview:reviewCard?awaitingReviewCount:null,isolation:isDemo?(demo?.metrics.activeIsolation??null):adminIsolation,overdueControlDepartments:adminCountEvents?overdueControlDepartments(adminCountEvents,adminNow):null,openCapa:calendarSources&&allowedKinds.includes('capa')?(calendarSources.capas||[]).filter(capa=>capa.lifecycleStatus!=='voided'&&!['closed','completed','cancelled'].includes(String(capa.status))).length:null}
+    const tileSources={loading:metricsState==='loading',awaitingReview:null,isolation:isDemo?(demo?.metrics.activeIsolation??null):adminIsolation,overdueControlDepartments:adminCountEvents?overdueControlDepartments(adminCountEvents,adminNow):null,openCapa:calendarSources&&allowedKinds.includes('capa')?(calendarSources.capas||[]).filter(capa=>capa.lifecycleStatus!=='voided'&&!['closed','completed','cancelled'].includes(String(capa.status))).length:null}
     const certificatesOn=moduleEnabled('training')&&allowedKinds.includes('training')
     // «Χρειάζονται και αυτά απόφαση»: what the figures do not show, with the objectives off course and the training requests the home counts.
     const decisionMetrics={...values,missedObjectives,trainingRequests:trainingRequests??undefined}
     const openDecision=(item: AdminDecision)=>item.key==='trainingRequests'?navigate(item.to,{state:{trainingView:'requests'}}):navigate(item.to)
     const latest=nctx.visibleAnnouncements[0]
-    return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={subtitle||tr('Τι χρειάζεται σήμερα','What needs doing today')}>
+    // The five figures: the hospital's period figures and, without a period, the overdue corrective actions.
+    const capaTiles=adminHomeTiles(values,tileSources,{moduleEnabled,canOpen,language}).filter(tile=>tile.key==='overdueCapa')
+    return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={<><span className="dephome-subtitle-period">{subtitleParts.period} </span>{subtitleParts.compare}</>} actions={<DepartmentPeriodControls window={periodWindow} language={language} onKind={departmentPeriod.setKind} onChoice={departmentPeriod.setChoice} onStep={departmentPeriod.step}/>}>
       <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
-      <Suspense fallback={<RouteLoading/>}><AdminHome language={language} tiles={adminHomeTiles(values,tileSources,{moduleEnabled,canOpen,language})}
+      <Suspense fallback={<RouteLoading/>}><AdminHome language={language} overview={overview} window={periodWindow} status={overviewStatus} moduleEnabled={moduleEnabled} tiles={capaTiles}
         departments={adminCountEvents?departmentsNeedingAttention(adminCountEvents,calendarSources?.training,8,adminNow):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
         decisions={metricsState==='loading'?null:otherDecisionItems(decisionMetrics,{moduleEnabled,canOpen,language})} decisionsNote={metricsState==='error'?tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.'):null} onDecision={openDecision}
         week={adminEvents?weekSummary(adminEvents,homeToday,language):null} calendarOn={calendarOn}
