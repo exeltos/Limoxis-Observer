@@ -162,3 +162,12 @@ describe('the Codex findings on the administrator home', () => {
     expect(readSource('src/features/dashboard/AdminHome.tsx')).toContain('setAnnouncementsOpen(true)')
   })
 })
+
+describe('the hospital hand hygiene target on the administrator home (Codex, PR #704)', () => {
+  it('puts the hospital objective first for the whole hospital and the department\'s first for a department', () => {
+    const sql = readSource('supabase/migrations/20261231637000_department_home_hospital_hand_hygiene_target.sql')
+    expect(sql).toContain('create or replace function public.department_home_period_overview')
+    expect(sql).toContain('order by case when coalesce(cardinality(p_department_ids), 0) = 0 then (o.department_id is not null) else (o.department_id is null) end, o.updated_at desc')
+    expect(sql).not.toMatch(/^\s*(drop|revoke)\b/im)
+  })
+})
