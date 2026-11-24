@@ -33,6 +33,13 @@
 .filter-search-clear:hover,.filter-search-clear:focus-visible{background:var(--surface-muted,transparent)}
 /* A view switch at the right end of the filter row (FilterBar end). */
 .filter-end{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 1 auto;min-width:0}
+/* Tablet (owner, 24/11/2026): with the totals beside it the search was squeezed and its text cut off; the totals
+   (and any actions with them) go to a line of their own under the search. */
+@media (min-width:761px) and (max-width:1200px){
+  .filter-primary-row:has(>.filter-end .registry-totals){flex-wrap:wrap}
+  .filter-primary-row:has(>.filter-end .registry-totals)>.filter-search{flex:1 1 320px;max-width:none}
+  .filter-primary-row:has(>.filter-end .registry-totals)>.filter-end{flex:1 1 100%;justify-content:flex-start;flex-wrap:wrap}
+}
 /* Search, «Filters» and the view switch share one height (36px). */
 .filter-primary-row>.filter-search,.filter-primary-row>.filter-trigger{box-sizing:border-box;height:36px!important;min-height:36px!important}
 .filter-end .lo-mode-switch{margin:0}
