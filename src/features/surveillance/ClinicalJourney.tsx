@@ -1,5 +1,5 @@
 import './surveillanceScreens.css'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Activity, AlertTriangle, ClipboardList, Microscope, RefreshCcw, ShieldCheck } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 
@@ -9,29 +9,29 @@ import { SurveillanceJourneyGuidance, SurveillanceJourneyMap } from './Surveilla
 import { Detail } from './ClinicalAdmissions'
 import { StageTable, StateBadge } from './ClinicalJourneyParts'
 import { clinicalTerm } from './clinicalRecordLabels'
-import { AssessmentDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalRecordDialogs'
+import { AssessmentDialog, ReassessmentDialog, OutcomeDialog } from './ClinicalRecordDialogs'
 import { InlineDialogContext } from '../../design-system/ObserverDialog'
-import { SheetEditingContext, StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
+import { SheetEditingContext, StagePanel, TagList } from './ClinicalRecordViews'
 import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { EPI_ANSWERS, EPI_QUESTIONS, EPI_SOURCE, answerOf, epiText, isCoreComplete } from './epiQuestionnaire/epiQuestionnaireModel'
+import { EPI_ANSWERS, EPI_QUESTIONS, EPI_SOURCE, answerOf, epiText } from './epiQuestionnaire/epiQuestionnaireModel'
 import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
-import { loadEpiQuestionnaires, loadEpiSettings, saveEpiCoreAnswers } from './epiQuestionnaire/epiQuestionnaireService'
+import { saveEpiCoreAnswers } from './epiQuestionnaire/epiQuestionnaireService'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 
-import { useAuditActor } from '../../core/audit/useAuditActor'
 import { ProtocolPanel } from './protocols/ProtocolViews'
-import { protocolCues, protocolStages, useEpisodeProtocols } from './protocols/useEpisodeProtocols'
 import { changeRecognitionTime, finishProtocolRun, recordProtocolStep, removeDemoProtocolRun, setProtocolWeight } from './protocols/protocolService'
 import { JourneyWindows } from './ClinicalJourneyWindows'
 import { JourneyCareStages } from './ClinicalJourneyCareStages'
+import { ClinicalJourneyClosed } from './ClinicalJourneyClosed'
+import { useJourneyEpi } from './useJourneyEpi'
+import { useJourneyProtocols } from './useJourneyProtocols'
+import { useJourneySheetForms } from './useJourneySheetForms'
 import type { ClinicalDevice, ClinicalEntryKind, ClinicalReassessment } from './clinicalTypes'
 import type { ClinicalEntry, ClinicalEntryRecord, ClinicalLibraries, ClinicalPermissions, ClinicalRecordRepository, DeviceBundles, EpiState, JourneyCase, ProtocolRequest, RecordAdmission, RecordPatient, SheetDetailProps } from './clinicalScreenTypes'
 import type { SheetAction } from './SurveillanceEpisodeSheet'
-import type { InlineDialogEntry as InlineForm } from '../../design-system/ObserverDialog'
 import type { Handler } from './surveillanceTypes'
-import type { ReactNode } from 'react'
 // `as string` below: an optional text of a record handed to a helper typed for text (t, stayDays …), which reads a missing one as before.
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
@@ -107,14 +107,16 @@ export function CanonicalJourney({
   const SheetDetail = ({ label, value }: SheetDetailProps) => (
     <Detail label={label} value={value || <em className="sheet-empty">{copyText('notFilled')}</em>} />
   )
-  const actor = useAuditActor()
-  // N3: protocols started on the episode and the 48–72 h antimicrobial reviews.
-  const protocols = useEpisodeProtocols(record, { organizationId, isDemo })
-  const [protocolPreset, setProtocolPreset] = useState<ProtocolRequest | null>(null)
   const [stage, setStage] = useState(initialStage || 'samples')
   useEffect(() => {
     if (initialStage) setStage(initialStage)
   }, [initialStage])
+  const [bundleDevice, setBundleDevice] = useState<ClinicalDevice | null>(null),
+    [formNonce, setFormNonce] = useState(0)
+  const [dialog, setDialog] = useState<string | null>(null),
+    [reason, setReason] = useState(''),
+    [entryDetail, setEntryDetail] = useState<ClinicalEntry | null>(null)
+  const active = record.status === 'active'
   // An action of the sheet's «⋯» (new sample, device, …): its step and its window.
   useEffect(() => {
     if (!actionRequest?.nonce) return
@@ -128,32 +130,12 @@ export function CanonicalJourney({
     setDialog('sample')
     onSampleAsked?.()
   }, [askSample, onSampleAsked])
-  // The epidemiological questionnaire of the episode, a step of its own (owner, 8/11/2026).
-  const epiKey = isDemo ? record.id : record.recordId || record.id
-  const [epi, setEpi] = useState<EpiState>({ row: null, settings: [], ready: false, nonce: 0 })
-  useEffect(() => {
-    let alive = true
-    Promise.all([
-      loadEpiQuestionnaires(organizationId, [epiKey], { isDemo }),
-      loadEpiSettings(organizationId, { isDemo }).catch(() => []),
-    ])
-      .then(([rows, settings]) => alive && setEpi(current => ({ ...current, row: rows?.[String(epiKey)] || null, settings, ready: true })))
-      .catch(() => alive && setEpi(current => ({ ...current, ready: false })))
-    return () => {
-      alive = false
-    }
-  }, [organizationId, isDemo, epiKey, epi.nonce])
-  const epiDone = Boolean(epi.row && isCoreComplete(epi.row.answers))
+  // The epidemiological questionnaire of the episode, a step of its own (useJourneyEpi).
+  const { epiKey, epi, setEpi, epiDone } = useJourneyEpi(record, organizationId, isDemo)
   // Demo evaluation guide: reviewing these stages are steps of the CLABSI scenario.
   useEffect(() => {
     if (stage === 'hai' || stage === 'reassessment') signalDemoStep('clabsi_classification', stage)
   }, [stage])
-  const [bundleDevice, setBundleDevice] = useState<ClinicalDevice | null>(null),
-    [formNonce, setFormNonce] = useState(0)
-  const [dialog, setDialog] = useState<string | null>(null),
-    [reason, setReason] = useState(''),
-    [entryDetail, setEntryDetail] = useState<ClinicalEntry | null>(null)
-  const active = record.status === 'active'
   // «Delete» of an entry of the episode, for a «…» menu (null when the person may not delete it).
   const ENTRY_TABLES: Record<ClinicalEntryKind, [string, (row: ClinicalEntryRecord) => unknown]> = {
     assessment: ['clinical_assessments', (row: ClinicalEntryRecord) => row.byId],
@@ -176,75 +158,10 @@ export function CanonicalJourney({
           onDone: onReload,
         })
       : null
-  // "Start protocol" from the episode header or from a qSOFA / SOFA prompt.
-  useEffect(() => {
-    if (!startProtocolRequest?.nonce || !active) return
-    setProtocolPreset(startProtocolRequest)
-    setDialog('protocolPicker')
-    onProtocolRequestHandled?.()
-  }, [startProtocolRequest, active, onProtocolRequestHandled])
-  async function runProtocol(work: () => Promise<unknown>, message?: string) {
-    try {
-      const result = await work()
-      setDialog(null)
-      await protocols.reload()
-      notify(message || t('actionCompleted'), 'success')
-      return result ?? true
-    } catch (error) {
-      notify((error as Error)?.message || t('actionFailed'), 'danger')
-      return false
-    }
-  }
-  const protocolOptions = { isDemo, actor }
-  const now = new Date()
-  const extraStages = protocolStages(protocols.runs, t, language, now)
-  const extraCues = protocolCues(protocols.runs, record, protocols.reviews, t, {
-    canProtocol: permissions.canProtocol,
-    canTherapy: permissions.canTherapy,
-    now,
-  })
-  const activeRun = stage.startsWith('protocol:')
-    ? protocols.runs.find(run => `protocol:${run.id}` === stage) || null
-    : null
-  // The sheet's fields (owner, 8/11/2026): the forms of the assessment, the isolation, the reassessment and the outcome
-  // sit on the page itself, with their own Save, instead of a window over it.
-  // Only in «Edit sheet», one step at a time (owner, 8/11/2026).
-  const sheetEdit = {
-    assessment: editing && active && permissions.canAssess,
-    isolation: editing && active && permissions.canIsolation && !record.isolation && record.isolationDecision?.required !== false,
-    reassessment: editing && active && permissions.canReassess,
-    outcome: editing && active && permissions.canOutcome && !record.outcome,
-  }
-  // «Next» saves the form of the step when it was changed (owner, 8/11/2026): the inline form on show registers
-  // itself here (InlineDialogContext), and moving to another step saves it first.
-  const pendingForm = useRef<InlineForm | null>(null)
-  const inlineForms = { register: (entry: InlineForm) => (pendingForm.current = entry), unregister: (entry: InlineForm) => pendingForm.current === entry && (pendingForm.current = null) }
-  const sheetForm = (node: ReactNode) => <InlineDialogContext.Provider key={formNonce} value={inlineForms}>{node}</InlineDialogContext.Provider>
-  // In «Edit sheet» every step opens with its form, no button to press first (owner, 8/11/2026): a new sample, HAI
-  // assessment, device or therapy; the full questionnaire; the end of an active isolation.
-  const stageForms: Record<string, string | null> =
-    editing && active
-      ? {
-          samples: permissions.canLab ? 'sample' : null,
-          questionnaire: canWriteEpi(role) ? 'epi' : null,
-          hai: permissions.canAssess ? 'hai' : null,
-          devices: permissions.canAssess ? 'device' : null,
-          therapy: permissions.canTherapy ? 'therapy' : null,
-          isolation: permissions.canIsolation && record.isolation?.status === 'active' ? 'endIsolation' : null,
-        }
-      : {}
-  const shownDialog = dialog || stageForms[stage] || null
-  // The step's own form has nothing to close to; a form opened on purpose closes back to it.
-  const closeDialog = dialog && dialog !== stageForms[stage] ? () => setDialog(null) : null
-  function goToStage(id: string) {
-    const form = pendingForm.current
-    if (id !== stage && form?.dirty() && !form.save()) return
-    if (id !== stage) {
-      setDialog(null)
-      setEntryDetail(null)
-    }
-    setStage(id)
-  }
+  // N3: protocols started on the episode and the 48–72 h antimicrobial reviews (useJourneyProtocols).
+  const { actor, protocols, protocolPreset, runProtocol, protocolOptions, now, extraStages, extraCues, activeRun } = useJourneyProtocols({ record, organizationId, isDemo, active, stage, startProtocolRequest, onProtocolRequestHandled, setDialog, permissions, t, language, notify })
+  // «Edit sheet»: the forms on the page, each step's own form and «Next» saving it first (useJourneySheetForms).
+  const { sheetEdit, inlineForms, sheetForm, stageForms, shownDialog, closeDialog, goToStage } = useJourneySheetForms({ editing, active, permissions, record, role, stage, setStage, dialog, setDialog, setEntryDetail, formNonce })
   const cueDialogs: Record<string, string> = {
     assessment: 'assessment',
     isolation: 'isolation',
@@ -269,37 +186,22 @@ export function CanonicalJourney({
       notify((error as Error)?.message || t('actionFailed'), 'danger')
     }
   }
+  // A closed episode: its report and «Reopen surveillance» (ClinicalJourneyClosed).
   if (!active)
     return (
-      <div className="clinical-data-hub">
-        {permissions.canReopen && (
-          <div className="clinical-data-heading">
-            <Button variant="secondary" onClick={() => setDialog('reopen')}>
-              <RefreshCcw size={15} />
-              {t('clinicalRecords.reopenSurveillance')}
-            </Button>
-          </div>
-        )}
-        <CompletedReport
-          record={record}
-          t={t}
-          fmtDate={fmtDate}
-          language={language}
-          libraries={libraries}
-        />
-        {dialog === 'reopen' && (
-          <ReasonDialog
-            title={t('clinicalRecords.reopenSurveillance')}
-            t={t}
-            reason={reason}
-            setReason={setReason}
-            onClose={() => setDialog(null)}
-            onSave={() =>
-              run(() => repository.reopen(record, reason), t('clinicalRecords.surveillanceUpdated'))
-            }
-          />
-        )}
-      </div>
+      <ClinicalJourneyClosed
+        record={record}
+        permissions={permissions}
+        libraries={libraries}
+        t={t}
+        fmtDate={fmtDate}
+        language={language}
+        dialog={dialog}
+        setDialog={setDialog}
+        reason={reason}
+        setReason={setReason}
+        onReopen={() => run(() => repository.reopen(record, reason), t('clinicalRecords.surveillanceUpdated'))}
+      />
     )
   return (
     <SheetEditingContext.Provider value={editing}>
