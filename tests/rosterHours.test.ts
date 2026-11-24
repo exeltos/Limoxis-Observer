@@ -51,6 +51,6 @@ describe('twelve-hour shifts', () => {
   it('the engine reads the real hours while it builds, not eight a shift', () => {
     const engine = readSource('src/features/rosters/rosterEngine.ts')
     expect(engine).toContain('const hours = kindHoursOf(days, demand)')
-    expect(engine).toContain('weeklyHoursProblems(s.codes, days, s.hoursLimit, (code, i) =>')
+    expect(readSource('src/features/rosters/rosterScore.ts')).toContain('weeklyHoursProblems(s.codes, days, s.hoursLimit, (code, i) =>')
   })
 })

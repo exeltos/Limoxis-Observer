@@ -125,7 +125,7 @@ export function programmeCalendar(rows: { item: CalendarControl, departments: st
 }
 
 export function calendarTone(cell: CalendarCell) {
-  if (cell.frequent) {
+  if (cell.frequent === true) {
     if (cell.rate == null) return cell.planned ? 'planned' : 'empty'
     return cell.rate >= 90 ? 'good' : cell.rate >= 75 ? 'fair' : 'low'
   }

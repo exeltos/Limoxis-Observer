@@ -262,10 +262,12 @@ function groupStaff(ordered: NavItem[],limit: number){
   return [...before,...staff.map(item=>({...item,group:'staff'})),...after]
 }
 
+const isGroupedPolicy=(policy: ListPolicy|GroupedPolicy): policy is GroupedPolicy=>Boolean(policy.groups)
+
 function applyRoleMenuPolicy(role: string|null|undefined,items: NavItem[]){
   const currentPolicy=role?roleMenuPolicy[role]:undefined
   if(!currentPolicy){const management=items.filter(item=>item.key==='management');const rest=items.filter(item=>item.key!=='management');return [...groupStaff(rest,rest.length),...management]}
-  if(currentPolicy.groups)return applyGroupedPolicy(currentPolicy,items)
+  if(isGroupedPolicy(currentPolicy))return applyGroupedPolicy(currentPolicy,items)
   const visible=items.filter(item=>!currentPolicy.hidden.has(item.key))
   const primary=orderByKeys(
     visible.filter(item=>item.key!=='management'&&!currentPolicy.more.has(item.key)).map(item=>({...item,group:undefined})),

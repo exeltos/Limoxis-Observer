@@ -2,6 +2,7 @@ import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, dayInMonth } from '../../core/data/demoSeed'
 import type { Employee, EmployeeHistoryEntry } from './employeeTypes'
+import { bulkEmployeeDemo } from './employeeDemoBulk'
 export const employeeRows: Employee[] = [
   {id:'EMP-001',hrDepartment:'4260 Μ.Ε.Θ.',directorate:'10 ΝΟΣΗΛΕΥΤΙΚΗ ΔΙΕΥΘΥΝΣΗ',position:'Νοσηλευτής/τρια ΜΕΘ',positionEn:'ICU Nurse',firstName:'Μαρία',firstNameEn:'Maria',lastName:'Παπαδοπούλου',lastNameEn:'Papadopoulou',fatherName:'Ιωάννης',fatherNameEn:'Ioannis',department:'ΜΕΘ',departmentEn:'ICU',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'m.papadopoulou@example.org',phone:'210 555 0101',hireDate:'2019-03-18',birthDate:'1990-08-29'},
   {id:'EMP-002',position:'Επιμελητής Ιατρός',positionEn:'Consultant Physician',firstName:'Νικόλαος',firstNameEn:'Nikolaos',lastName:'Δημητρίου',lastNameEn:'Dimitriou',fatherName:'Αλέξανδρος',fatherNameEn:'Alexandros',department:'Παθολογική',departmentEn:'Internal Medicine',profession:'Ιατρικό προσωπικό',professionEn:'Medical staff',employmentStatus:'active',email:'n.dimitriou@example.org',phone:'210 555 0102',hireDate:'2021-09-01'},
@@ -251,6 +252,16 @@ export function demoEmployeeDocuments(employee: Employee,trainingCertificates: D
   const licenceDoc=licence?[{id:`DOC-LIC-${employee.id}`,name:`${en?licence[1]:licence[0]}.pdf`,category:employee.profession==='Διοικητικό προσωπικό'?'employmentCertificate':'professionalLicense',description:`${en?'On file since':'Στο αρχείο από'} ${fmtDay(employee.hireDate)}`}]:[]
   return [...licenceDoc,...certs,...training]
 }
+
+// The rest of the sample staff, so that the preview has the size of the real Demo (employeeDemoBulk.ts).
+const bulk=bulkEmployeeDemo(employeeRows,evaluation)
+employeeRows.push(...bulk.employees)
+employeeVaccinations.push(...bulk.vaccinations)
+employeeCertificates.push(...(bulk.certificates as typeof employeeCertificates))
+employeeEvaluations.push(...(bulk.evaluations as typeof employeeEvaluations))
+occupationalVisits.push(...(bulk.visits as unknown as typeof occupationalVisits))
+employeeExposureIncidents.push(...(bulk.exposures as unknown as typeof employeeExposureIncidents))
+employeeHistoryDemo.push(...bulk.history)
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([employeeRows,occupationalVisits,employeeVaccinations,employeeTraining,employeeEvaluations,employeeCertificates,employeeExposureIncidents,employeeHistoryDemo])
