@@ -27,6 +27,7 @@ import { handHygieneRows } from '../prevention/preventionDemoData'
 import { sampleDepartmentFigures } from '../division/divisionService'
 import { needsSurveillanceReview } from '../laboratory/sampleReviewModel'
 import { isContaminationNote } from '../surveillance/skinFloraOrganisms'
+import type { HospitalMatrix } from './hospitalMatrixModel'
 import { DEFAULT_HAND_HYGIENE_TARGET, bucketedPositives, departmentHomeWindow, handHygieneMonthCount, isMdrClass, monthlyHandHygieneSeries, normalizeDepartmentHome, organismSummary, type DepartmentHomeOverview, type DepartmentHomeWindow } from './departmentHomeModel'
 
 // What the counts read of the Demo records of the other modules.
@@ -238,4 +239,25 @@ export function collectDemoDepartmentHome({ department, now = new Date(), window
     falls30: figures?.falls30 ?? 0,
     pressureUlcers30: figures?.pressureUlcers30 ?? 0,
   }, window)
+}
+
+// «Χάρτης τμημάτων» of the Demo: each Demo department's figures for the period, counted as «Το τμήμα μου» counts them.
+export function collectDemoDepartmentMatrix({ now = new Date(), window = departmentHomeWindow('month', hospitalDate(now)) }: { now?: Date, window?: DepartmentHomeWindow } = {}): HospitalMatrix {
+  const names = new Set<string>()
+  for (const row of laboratorySamples as DepartmentRow[]) { const name = departmentOf(row); if (name) names.add(name) }
+  for (const row of Object.values(clinicalCases) as DepartmentRow[]) { const name = departmentOf(row); if (name) names.add(name) }
+  for (const row of loadControlAssignmentsLocal() as DepartmentRow[]) { const name = departmentOf(row); if (name) names.add(name) }
+  for (const row of handHygieneRows) if (row.departmentEl) names.add(row.departmentEl)
+  const departments = [...names].sort((a, b) => a.localeCompare(b, 'el')).map(department => {
+    const o = collectDemoDepartmentHome({ department, now, window })
+    return {
+      departmentId: null, department,
+      positives: o.positives, positivesMdr: o.positivesMdr, comparePositives: o.compare.positives,
+      episodes: (o.newSurveillance ?? 0) + (o.newIsolation ?? 0), compareEpisodes: (o.compare.newSurveillance ?? 0) + (o.compare.newIsolation ?? 0),
+      handHygienePct: o.handHygienePct, handHygieneObservations: o.handHygieneObservations, compareHandHygienePct: o.compare.handHygienePct,
+      handHygieneTarget: DEFAULT_HAND_HYGIENE_TARGET,
+      lateControls: o.lateControls, compareLateControls: o.compare.lateControls,
+    }
+  })
+  return { hospitalTarget: DEFAULT_HAND_HYGIENE_TARGET, departments }
 }

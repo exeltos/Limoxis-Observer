@@ -12,10 +12,13 @@ import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { loadDashboardMetrics, peekDashboardMetrics, readStoredDashboardMetrics, type DashboardMetrics } from './dashboardCloudService'
 import { FirstStepsCard, firstSteps } from './FirstStepsCard'
-import { collectDemoDashboardMetrics, collectDemoDepartmentHome } from './demoDashboardMetrics'
+import { collectDemoDashboardMetrics, collectDemoDepartmentHome, collectDemoDepartmentMatrix } from './demoDashboardMetrics'
 import { loadDepartmentHomeOverview, peekDepartmentHomeOverview } from './departmentHomeService'
 import { windowSubtitleParts, type DepartmentHomeOverview } from './departmentHomeModel'
 import { DepartmentPeriodControls, useDepartmentHomeWindow } from './DepartmentHomePeriod'
+import { loadHospitalMatrix } from './hospitalMatrixService'
+import type { ClusterLike, HospitalMatrix } from './hospitalMatrixModel'
+import { loadActiveClustersAsync } from '../surveillance/outbreakClusterService'
 import { DEPARTMENT_ROLES, pendingActionsOf } from './dashboardTasks'
 import './dashboard.css'
 import { roleTitleText } from '../../core/i18n/roleTitles'
@@ -119,6 +122,8 @@ const TILE_TARGETS: Record<string, Tone>={overdueControls:'danger',criticalUncom
 
 // The list shows its first eight items; the week its first six events.
 const TODO_FOLDED=8,WEEK_SHOWN=6
+// The hospital's home (AdminHome, owner 24/11/2026): the administrator, the infection control roles and the Quality Manager.
+const HOSPITAL_HOME_ROLES: ReadonlySet<string>=new Set([ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER,ROLES.QUALITY_MANAGER])
 
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
@@ -158,8 +163,11 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   // the Demo counts its sample records. A failed read shows the error line and empty figures, never the Demo's.
   const departmentPeriod=useDepartmentHomeWindow()
   const periodWindow=departmentPeriod.window
-  // The administrator's home reads the same figures for the whole hospital (no departments: all of them).
-  const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
+  // The hospital's home (owner, 24/11/2026): the administrator, the infection control roles and the Quality Manager read
+  // the same figures for the whole hospital (no departments: all of them, or the role's own departments).
+  const adminHome=HOSPITAL_HOME_ROLES.has(String(role))&&showKpis&&!department
+  // Laboratory and surveillance figures only for whoever reads clinical data (not the Quality Manager).
+  const clinicalHome=role!==ROLES.QUALITY_MANAGER
   const periodHome=departmentHome||adminHome
   const periodDepartments=adminHome?null:membership?.departmentIds
   const [departmentOverview,setDepartmentOverview]=useState<{data: DepartmentHomeOverview | null, status: 'loading' | 'ready' | 'error'}>(()=>{const kept=periodHome&&!isDemo?peekDepartmentHomeOverview(tenant?.id,periodDepartments,periodWindow):null;return kept?{data:kept,status:'ready'}:{data:null,status:'loading'}})
@@ -175,6 +183,25 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     loadDepartmentHomeOverview(tenant?.id,periodDepartments,periodWindow).then(data=>{if(active)setDepartmentOverview({data,status:'ready'})}).catch(()=>{if(active)setDepartmentOverview({data:null,status:'error'})})
     return()=>{active=false}
   },[periodHome,isDemo,tenant?.id,periodDepartments,periodWindow])
+  // «Χάρτης τμημάτων»: the period's figures by department (the Demo counts its own records).
+  const [hospitalMatrix,setHospitalMatrix]=useState<{data: HospitalMatrix | null, status: 'loading' | 'ready' | 'error'}>({data:null,status:'loading'})
+  const demoMatrix=useMemo(()=>adminHome&&isDemo?collectDemoDepartmentMatrix({window:periodWindow}):null,[adminHome,isDemo,periodWindow])
+  useEffect(()=>{
+    let active=true
+    if(!adminHome||isDemo)return()=>{active=false}
+    setHospitalMatrix({data:null,status:'loading'})
+    loadHospitalMatrix(tenant?.id,periodWindow).then(data=>{if(active)setHospitalMatrix({data,status:'ready'})}).catch(()=>{if(active)setHospitalMatrix({data:null,status:'error'})})
+    return()=>{active=false}
+  },[adminHome,isDemo,tenant?.id,periodWindow])
+  // «Επισημάνσεις»: the active possible clusters (14 days, 3 patients), for the clinical roles.
+  const clustersOn=adminHome&&clinicalHome&&moduleEnabled('surveillance')
+  const [clusters,setClusters]=useState<ClusterLike[] | null>(null)
+  useEffect(()=>{
+    let active=true
+    if(!clustersOn){setClusters([]);return()=>{active=false}}
+    loadActiveClustersAsync(tenant?.id).then(rows=>{if(active)setClusters(rows.map(row=>({department:row.department,organism:row.organism,count:row.count,windowDays:row.windowDays})))}).catch(()=>{if(active)setClusters([])})
+    return()=>{active=false}
+  },[clustersOn,tenant?.id])
   const overview=demoOverview||departmentOverview.data
   const overviewStatus=demoOverview?'ready':departmentOverview.status
   const values: Metrics=demo?demo.metrics:metrics
@@ -311,6 +338,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={<><span className="dephome-subtitle-period">{subtitleParts.period} </span>{subtitleParts.compare}</>} actions={<DepartmentPeriodControls window={periodWindow} language={language} onKind={departmentPeriod.setKind} onChoice={departmentPeriod.setChoice} onStep={departmentPeriod.step}/>}>
       <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
       <Suspense fallback={<RouteLoading/>}><AdminHome language={language} overview={overview} window={periodWindow} status={overviewStatus} moduleEnabled={moduleEnabled} tiles={capaTiles}
+        matrix={demoMatrix||hospitalMatrix.data} matrixStatus={demoMatrix?'ready':hospitalMatrix.status} clusters={clusters} clinical={clinicalHome}
         departments={adminCountEvents?departmentsNeedingAttention(adminCountEvents,calendarSources?.training,8,adminNow):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
         decisions={metricsState==='loading'?null:otherDecisionItems(decisionMetrics,{moduleEnabled,canOpen,language})} decisionsNote={metricsState==='error'?tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.'):null} onDecision={openDecision}
         week={adminEvents?weekSummary(adminEvents,homeToday,language):null} calendarOn={calendarOn}
