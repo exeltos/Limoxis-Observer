@@ -1,11 +1,11 @@
 /* The administrator's home (owner, 24/11/2026): the hospital's five figures for the period, then two rows of cards in one
-   screen. The page does not scroll on a computer or tablet: the departments show the bars that fit; the decisions and the
+   screen. The page does not scroll on a computer or tablet: the department map shows the lines that fit; the alerts and the
    week scroll inside their cards. */
 .dashboard-page.page-fill>.adminhome{flex:1 1 0;min-height:0}
 .adminhome{display:flex;flex-direction:column;gap:12px;min-height:0}
 .adminhome>.dephome-tiles,.adminhome>.dephome-error{flex:none}
 .adminhome-columns{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:12px;min-height:0}
-.adminhome-columns:not(:has(>.adminhome-attention)){grid-template-columns:minmax(0,1fr)}
+.adminhome-columns:not(:has(>.adminhome-map)){grid-template-columns:minmax(0,1fr)}
 /* The positive samples per week, the hospital's organisms and the week. */
 .adminhome-lower{flex:1.1 1 0;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
 .adminhome-lower:not(:has(>.dephome-chart-card)){grid-template-columns:minmax(0,1fr)}
@@ -14,34 +14,36 @@
 .adminhome .dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
 .adminhome .dashboard-card .lo-card-header{margin:0 0 8px;padding:0 0 8px}
 
-/* «Τμήματα με τις περισσότερες εκκρεμότητες»: one stacked bar per department (red controls, amber corrective actions,
-   slate staff certificates), scaled to the largest total, as many as fit (up to eight). */
-.adminhome-bars{flex:1 1 auto;min-height:84px;overflow:hidden;display:flex;flex-direction:column}
-.adminhome-bars>.adminhome-legend{margin-top:8px}
-.adminhome-bar-row{flex:none;display:grid;grid-template-columns:minmax(96px,30%) minmax(0,1fr) 40px;align-items:center;gap:10px;height:28px;padding:0 4px;border:0;border-radius:6px;background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
-.adminhome-bar-row:hover:not(:disabled){background:var(--lo-shell-control-hover)}
-.adminhome-bar-row:disabled{cursor:default}
-.adminhome-bar-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.adminhome-bar{display:flex;height:12px;min-width:0;border-radius:4px;overflow:hidden;background:var(--lo-color-surface-muted)}
-.adminhome-bar>i{display:block;height:100%}
-.adminhome-bar>i+i{box-shadow:inset 1px 0 0 var(--lo-color-surface)}
-.adminhome-bar>.is-controls,.adminhome-legend .is-controls{background:var(--lo-color-danger)}
-.adminhome-bar>.is-capa,.adminhome-legend .is-capa{background:var(--lo-color-warning)}
-.adminhome-bar>.is-certificates,.adminhome-legend .is-certificates{background:var(--lo-color-muted)}
-.adminhome-bar-total{font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
-.adminhome-legend{flex:none;display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 0;padding:0 4px;list-style:none;font-size:11.5px;color:var(--lo-color-muted)}
-.adminhome-legend li{display:inline-flex;align-items:center;gap:6px}
-.adminhome-legend i{width:10px;height:10px;border-radius:3px}
+/* «Χάρτης τμημάτων»: one line per department, one coloured cell per subject (green, amber, red; grey for no data), an
+   arrow for the change from the comparison period; the lines that fit the card. */
+.adminhome-map-box{flex:1 1 auto;min-height:90px;overflow:hidden}
+.adminhome-map-table{width:100%;border-collapse:separate;border-spacing:3px 2px;table-layout:fixed}
+.adminhome-map-table th{font-size:11.5px;font-weight:600;line-height:1.15;color:var(--lo-color-muted);text-align:center;vertical-align:bottom;overflow:hidden;padding:0 2px 2px}
+.adminhome-map-table thead th:first-child{width:28%}
+.adminhome-map-table tbody th{font-size:12.5px;font-weight:600;color:var(--lo-color-text);text-align:left;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+.adminhome-map-table td{padding:0}
+.adminhome-map-cell{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;height:26px;border:0;border-radius:6px;font:inherit;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer}
+.adminhome-map-cell:disabled{cursor:default}
+.adminhome-map-cell:hover:not(:disabled){filter:brightness(.96)}
+.adminhome-map-cell.is-good{background:color-mix(in srgb,var(--lo-color-success) 13%,var(--lo-color-surface));color:color-mix(in srgb,var(--lo-color-success) 55%,var(--lo-color-text))}
+.adminhome-map-cell.is-warn{background:color-mix(in srgb,var(--lo-color-warning) 15%,var(--lo-color-surface));color:color-mix(in srgb,var(--lo-color-warning) 55%,var(--lo-color-text))}
+.adminhome-map-cell.is-bad{background:color-mix(in srgb,var(--lo-color-danger) 14%,var(--lo-color-surface));color:color-mix(in srgb,var(--lo-color-danger) 65%,var(--lo-color-text))}
+.adminhome-map-cell.is-none{background:var(--lo-color-surface-muted);color:var(--lo-color-muted)}
+.adminhome-map-cell i{font-style:normal;font-size:10px}
+/* The arrow in the cell's own (contrasting) colour: its direction and the cell's colour tell better from worse. */
+.adminhome-map-cell i.is-worse,.adminhome-map-cell i.is-better{color:inherit}
 
-/* «Χρειάζονται απόφαση»: only what the figures do not show, one column of short lines that scrolls inside the card. */
-.adminhome-decisions{flex:1 1 auto;min-height:0;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr);align-content:start;margin:0;padding:0;list-style:none}
-.adminhome-decisions button{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;height:30px;padding:0 4px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
-.adminhome-decisions button:hover{background:var(--lo-shell-control-hover)}
-.adminhome-decision-dot{width:8px;height:8px;border-radius:50%;background:var(--lo-color-warning)}
-.adminhome-decision-dot.is-danger{background:var(--lo-color-danger)}
-.adminhome-decision-title{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.adminhome-decisions b{font-size:13px;font-variant-numeric:tabular-nums;color:var(--lo-color-warning)}
-.adminhome-decisions b.is-danger{color:var(--lo-color-danger)}
+/* «Επισημάνσεις»: possible clusters and hand hygiene under target, then the decisions; one column that scrolls. */
+.adminhome-alert-list{flex:1 1 auto;min-height:0;overflow:auto;margin:0;padding:0;list-style:none}
+.adminhome-alert-list button{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:34px;padding:4px 6px 4px 10px;border:0;border-bottom:1px solid var(--lo-color-border);border-left:3px solid var(--lo-color-warning);background:transparent;color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.adminhome-alert-list button.is-danger{border-left-color:var(--lo-color-danger)}
+.adminhome-alert-list button:hover:not(:disabled){background:var(--lo-shell-control-hover)}
+.adminhome-alert-list button:disabled{cursor:default}
+.adminhome-alert-copy{display:flex;flex-direction:column;min-width:0}
+.adminhome-alert-copy strong{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-alert-copy small{font-size:11.5px;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adminhome-alert-list b{font-size:13px;font-variant-numeric:tabular-nums;color:var(--lo-color-warning)}
+.adminhome-alert-list .is-danger b{color:var(--lo-color-danger)}
 .adminhome-decisions-empty{margin:4px 0 0;font-size:12.5px;color:var(--lo-color-muted)}
 
 /* «Η εβδομάδα»: today and the days that have something, the day and its chips in the calendar's colours. */
@@ -75,13 +77,13 @@
 @media(max-width:1180px){.adminhome .dephome-tile{padding:9px 11px}.adminhome .dephome-tile-label,.adminhome .dephome-tile-detail{font-size:11.5px}.adminhome .dephome-tile-value{font-size:22px}
   .adminhome .dashboard-card .lo-card-heading small,.adminhome .dashboard-card .lo-card-icon{display:none}
   .adminhome-week-days button{grid-template-columns:54px minmax(0,1fr);gap:8px}
-  .adminhome-decisions button{gap:6px;padding:0 2px}.adminhome-decision-title{font-size:12px}
+  .adminhome-map-table th{font-size:10px}.adminhome-map-table thead th:first-child{width:21%}.adminhome-map-table tbody th{font-size:12px}.adminhome-map-cell{font-size:12px}
   /* The organisms keep their lines (the period's counts are in the first figure already); the legend in smaller words. */
-  .adminhome-columns{flex:1.25 1 0}.adminhome .dephome-organism-figures{display:none}.adminhome-legend{gap:2px 10px;font-size:11px}
+  .adminhome-columns{flex:1.25 1 0}.adminhome .dephome-organism-figures{display:none}
   /* The lower row: the chart wider, the organisms and the week narrower. */
   .adminhome-lower{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.9fr)}}
 /* Phone (or a short window): everything stacks and the page scrolls. */
-@media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome-columns,.adminhome-lower{flex:none;grid-template-columns:1fr}.adminhome-bars{flex:none}.adminhome-lower .dephome-chart{height:190px;flex:none}.adminhome-week-days button{height:36px}}
+@media(max-width:900px),(max-height:640px){.dashboard-page.page-fill>.adminhome{flex:none}.adminhome-columns,.adminhome-lower{flex:none;grid-template-columns:1fr}.adminhome-map-box{flex:none}.adminhome-lower .dephome-chart{height:190px;flex:none}.adminhome-week-days button{height:36px}}
 @media(max-width:760px){.adminhome .dephome-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .adminhome-announcement-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
 .adminhome-announcement-list li{padding:10px 0;border-bottom:1px solid var(--lo-color-border)}

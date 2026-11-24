@@ -141,7 +141,7 @@ describe('the hospital\'s period on the administrator home (owner, 24/11/2026)',
   })
   it('shows the four period figures, the overdue corrective actions, the chart, the hospital organisms and the busy days', () => {
     const home = readSource('src/features/dashboard/AdminHome.tsx')
-    expect(home).toContain('...periodTiles(overview, { language, moduleEnabled })')
+    expect(home).toContain('...periodTiles(overview, { language, moduleEnabled: shownModule })')
     expect(home).toContain("<PositivesChart rows={overview?.positivesSeries || []}")
     expect(home).toContain("title={tr('Μικρόβια του νοσοκομείου', 'Hospital organisms')}")
     expect(home).toContain('const busyDays = (week || []).filter(day => day.today || day.chips.length > 0)')

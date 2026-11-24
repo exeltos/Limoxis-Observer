@@ -22,7 +22,7 @@ export const DECISION_ITEMS: readonly DecisionItem[] = Object.freeze([
   ['kitchenUnverifiedDays', 'Ημέρες κουζίνας χωρίς επαλήθευση HACCP (30 ημ.)', 'Kitchen days without HACCP verification (30 d)', '/kitchen', 'kitchen'],
 ])
 // Severe items first: expired, critical and overdue before the rest.
-const URGENT = new Set(['expiredCertificates', 'criticalUncommunicated', 'overdueCapa', 'overdueControls'])
+const URGENT = new Set(['expiredCertificates', 'criticalUncommunicated', 'overdueCapa', 'overdueControls', 'severeOpenIncidents'])
 
 const count = (value: unknown) => (Number.isFinite(Number(value)) ? Number(value) : 0)
 
@@ -43,6 +43,8 @@ export const TILE_DECISION_KEYS: ReadonlySet<string> = new Set(['overdueControls
 // Short titles: two columns of them fit the card on a tablet (the full title stays in each line's tooltip).
 export const HOME_DECISION_ITEMS: readonly DecisionItem[] = Object.freeze([
   ['expiredCertificates', 'Ληγμένα πιστοποιητικά προμηθευτών', 'Expired supplier certificates', '/quality?tab=resources', 'suppliers'],
+  // The severe open incidents (owner, 24/11/2026: the Quality Manager's home is this home now; Codex on PR #705).
+  ['severeOpenIncidents', 'Σοβαρά ανοικτά συμβάντα', 'Severe open incidents', '/quality', 'quality'],
   ['criticalUncommunicated', 'Κρίσιμα χωρίς ενημέρωση', 'Critical results not communicated', '/laboratory', 'laboratory'],
   ['pendingApprovals', 'Αντιμικροβιακές προς έγκριση', 'Antimicrobials to approve', '/pharmacy', 'pharmacy'],
   ['missedObjectives', 'Στόχοι που δεν επιτυγχάνονται', 'Objectives not met', '/quality/measures', ''],
