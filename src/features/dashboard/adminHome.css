@@ -25,13 +25,13 @@
 .adminhome-map-cell{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;height:26px;border:0;border-radius:6px;font:inherit;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer}
 .adminhome-map-cell:disabled{cursor:default}
 .adminhome-map-cell:hover:not(:disabled){filter:brightness(.96)}
-.adminhome-map-cell.is-good{background:color-mix(in srgb,var(--lo-color-success) 13%,var(--lo-color-surface));color:var(--lo-color-success)}
-.adminhome-map-cell.is-warn{background:color-mix(in srgb,var(--lo-color-warning) 15%,var(--lo-color-surface));color:var(--lo-color-warning)}
-.adminhome-map-cell.is-bad{background:color-mix(in srgb,var(--lo-color-danger) 14%,var(--lo-color-surface));color:var(--lo-color-danger)}
+.adminhome-map-cell.is-good{background:color-mix(in srgb,var(--lo-color-success) 13%,var(--lo-color-surface));color:color-mix(in srgb,var(--lo-color-success) 55%,var(--lo-color-text))}
+.adminhome-map-cell.is-warn{background:color-mix(in srgb,var(--lo-color-warning) 15%,var(--lo-color-surface));color:color-mix(in srgb,var(--lo-color-warning) 55%,var(--lo-color-text))}
+.adminhome-map-cell.is-bad{background:color-mix(in srgb,var(--lo-color-danger) 14%,var(--lo-color-surface));color:color-mix(in srgb,var(--lo-color-danger) 65%,var(--lo-color-text))}
 .adminhome-map-cell.is-none{background:var(--lo-color-surface-muted);color:var(--lo-color-muted)}
 .adminhome-map-cell i{font-style:normal;font-size:10px}
-.adminhome-map-cell i.is-worse{color:var(--lo-color-danger)}
-.adminhome-map-cell i.is-better{color:var(--lo-color-success)}
+/* The arrow in the cell's own (contrasting) colour: its direction and the cell's colour tell better from worse. */
+.adminhome-map-cell i.is-worse,.adminhome-map-cell i.is-better{color:inherit}
 
 /* «Επισημάνσεις»: possible clusters and hand hygiene under target, then the decisions; one column that scrolls. */
 .adminhome-alert-list{flex:1 1 auto;min-height:0;overflow:auto;margin:0;padding:0;list-style:none}
