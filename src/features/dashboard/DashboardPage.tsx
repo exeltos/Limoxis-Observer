@@ -198,6 +198,8 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
   const [clusters,setClusters]=useState<ClusterLike[] | null>(null)
   useEffect(()=>{
     let active=true
+    // A hospital switched on the same page: never the previous hospital's clusters while the new ones load.
+    setClusters(null)
     if(!clustersOn){setClusters([]);return()=>{active=false}}
     loadActiveClustersAsync(tenant?.id).then(rows=>{if(active)setClusters(rows.map(row=>({department:row.department,organism:row.organism,count:row.count,windowDays:row.windowDays})))}).catch(()=>{if(active)setClusters([])})
     return()=>{active=false}
@@ -339,7 +341,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
       <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
       <Suspense fallback={<RouteLoading/>}><AdminHome language={language} overview={overview} window={periodWindow} status={overviewStatus} moduleEnabled={moduleEnabled} tiles={capaTiles}
         matrix={demoMatrix||hospitalMatrix.data} matrixStatus={demoMatrix?'ready':hospitalMatrix.status} clusters={clusters} clinical={clinicalHome}
-        departments={adminCountEvents?departmentsNeedingAttention(adminCountEvents,calendarSources?.training,8,adminNow):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
+        departments={adminCountEvents?departmentsNeedingAttention(adminCountEvents,calendarSources?.training,Number.POSITIVE_INFINITY,adminNow):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
         decisions={metricsState==='loading'?null:otherDecisionItems(decisionMetrics,{moduleEnabled,canOpen,language})} decisionsNote={metricsState==='error'?tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.'):null} onDecision={openDecision}
         week={adminEvents?weekSummary(adminEvents,homeToday,language):null} calendarOn={calendarOn}
         announcements={{unread:nctx.unreadCount,latest:latest?.title||null,items:nctx.visibleAnnouncements.slice(0,6).map(item=>({id:String(item.id),title:String(item.title||''),message:String(item.message||'')})),onMarkAll:nctx.markAllRead,onOpen:()=>window.dispatchEvent(new CustomEvent('limoxis:open-notifications'))}} canOpen={canOpen} onOpen={navigate}/></Suspense>

@@ -76,3 +76,15 @@ describe('the Demo map and the database read', () => {
     expect(page).toContain('const clinicalHome=role!==ROLES.QUALITY_MANAGER')
   })
 })
+
+describe('the Codex findings on the hospital home (PR #705)', () => {
+  it('keeps the severe open incidents among the alerts, urgent', async () => {
+    const { otherDecisionItems } = await import('../src/features/dashboard/adminHomeModel')
+    expect(otherDecisionItems({ severeOpenIncidents: 2 })).toEqual([{ key: 'severeOpenIncidents', title: 'Σοβαρά ανοικτά συμβάντα', count: 2, to: '/quality', urgent: true }])
+  })
+  it('clears the previous hospital\'s clusters and feeds every department\'s overdue items to the map', () => {
+    const page = readSource('src/features/dashboard/DashboardPage.tsx')
+    expect(page).toContain('    setClusters(null)\n    if(!clustersOn)')
+    expect(page).toContain('departmentsNeedingAttention(adminCountEvents,calendarSources?.training,Number.POSITIVE_INFINITY,adminNow)')
+  })
+})
