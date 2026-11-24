@@ -88,3 +88,9 @@ describe('the Codex findings on the hospital home (PR #705)', () => {
     expect(page).toContain('departmentsNeedingAttention(adminCountEvents,calendarSources?.training,Number.POSITIVE_INFINITY,adminNow)')
   })
 })
+
+describe('the department map keeps its screen-reader label hidden on any route (visual CI, PR #706)', () => {
+  it('has its own visually-hidden rule, not the one that loads with the Documents screen', () => {
+    expect(readSource('src/features/dashboard/adminHome.css')).toContain('.adminhome-map-table .lo-visually-hidden{position:absolute;width:1px;height:1px')
+  })
+})

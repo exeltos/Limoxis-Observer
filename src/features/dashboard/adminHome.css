@@ -20,6 +20,8 @@
 .adminhome-map-table{width:100%;border-collapse:separate;border-spacing:3px 2px;table-layout:fixed}
 .adminhome-map-table th{font-size:11.5px;font-weight:600;line-height:1.15;color:var(--lo-color-muted);text-align:center;vertical-align:bottom;overflow:hidden;padding:0 2px 2px}
 .adminhome-map-table thead th:first-child{width:28%}
+/* The department column's name for screen readers only: its own rule here (the shared one loads with other screens). */
+.adminhome-map-table .lo-visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .adminhome-map-table tbody th{font-size:12.5px;font-weight:600;color:var(--lo-color-text);text-align:left;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
 .adminhome-map-table td{padding:0}
 .adminhome-map-cell{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;height:26px;border:0;border-radius:6px;font:inherit;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer}
