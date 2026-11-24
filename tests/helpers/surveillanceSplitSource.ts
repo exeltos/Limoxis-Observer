@@ -10,7 +10,7 @@ export const SURVEILLANCE_SPLITS = {
   [`${S}ClinicalAdmissions`]: [`${S}ClinicalAdmissionDialogs.tsx`],
   [`${S}clinicalCloudService`]: [`${S}clinicalCaseReads.ts`, `${S}clinicalCaseWrites.ts`, `${S}clinicalCloudMappers.ts`, `${S}clinicalCareCloudService.ts`],
   [`${S}PatientClinicalCanonicalPage`]: [`${S}PatientClinicalRecordTabs.tsx`],
-  [`${S}ClinicalJourney`]: [`${S}ClinicalJourneyCareStages.tsx`, `${S}ClinicalJourneyWindows.tsx`],
+  [`${S}ClinicalJourney`]: [`${S}ClinicalJourneyCareStages.tsx`, `${S}ClinicalJourneyWindows.tsx`, `${S}ClinicalJourneyClosed.tsx`, `${S}useJourneyEpi.ts`, `${S}useJourneyProtocols.ts`, `${S}useJourneySheetForms.tsx`],
 }
 
 const stem = file => String(file).replace(/\.(js|jsx|ts|tsx)$/, '')
