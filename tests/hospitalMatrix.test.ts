@@ -37,6 +37,20 @@ describe('«Χάρτης τμημάτων» (owner, 24/11/2026)', () => {
     expect(ed?.cells.certificates).toMatchObject({ text: '3', tone: 'bad' })
     expect(Object.keys(rows[0].cells).sort()).toEqual(['certificates', 'handHygiene'])
   })
+  // Owner, 26/11/2026: «Εκτός χρόνου» split into the controls overdue now and the period's late entries (±1 hour).
+  it('shows the overdue controls now (no arrow) beside the late entries, and «—» for the departments hidden in Controls', () => {
+    const split = normalizeHospitalMatrix({ departments: [
+      { department: 'ΜΕΘ', lateControls: 4, compareLateControls: 1, overdueControls: 2 },
+      { department: 'ΤΕΠ', lateControls: 0, compareLateControls: 0, overdueControls: 0 },
+      { department: 'Φαρμακείο', lateControls: 5, compareLateControls: 0, overdueControls: 3 },
+    ] })
+    const rows = departmentMap(split, null, { columns: ['overdueControls', 'lateControls'], comparing: true, hiddenControls: new Set(['Φαρμακείο']) })
+    const icu = rows.find(row => row.department === 'ΜΕΘ')
+    expect(icu?.cells.overdueControls).toMatchObject({ text: '2', tone: 'warn', trend: null })
+    expect(icu?.cells.lateControls).toMatchObject({ text: '4', tone: 'bad', trend: 'up', worse: true })
+    expect(rows.find(row => row.department === 'Φαρμακείο')?.cells).toMatchObject({ overdueControls: { text: '—', tone: 'none' }, lateControls: { text: '—', tone: 'none' } })
+    expect(rows.at(-1)?.department).toBe('Φαρμακείο')
+  })
 })
 
 describe('«Επισημάνσεις» (owner, 24/11/2026)', () => {

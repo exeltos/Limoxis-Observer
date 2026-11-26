@@ -61,8 +61,8 @@ export function useControlTimeFitReport(rows: ControlRow[], organizationId: stri
 }
 
 export const timeFitNote = (language: string) => language === 'en'
-  ? `For each daily control: its set times, the usual time of each entry in the last ${TIME_FIT_DAYS} days and the full hours that would catch the most entries in their window (1 hour before to 2 hours after when once a day, ±1 hour when more often). A proposal is shown only when it is clearly better. Agree it with the department before changing it.`
-  : `Για κάθε ημερήσιο έλεγχο: οι ώρες του, η συνήθης ώρα κάθε καταγραφής τις τελευταίες ${TIME_FIT_DAYS} ημέρες και οι ακέραιες ώρες που θα έπιαναν τις περισσότερες καταγραφές μέσα στο περιθώριο (1 ώρα πριν έως 2 μετά όταν γίνεται μία φορά, ±1 ώρα όταν γίνεται συχνότερα). Πρόταση εμφανίζεται μόνο όταν είναι σαφώς καλύτερη. Συμφωνήστε την με το τμήμα πριν την αλλαγή.`
+  ? `For each daily control: its set times, the usual time of each entry in the last ${TIME_FIT_DAYS} days and the full hours that would catch the most entries in their window (±1 hour). A proposal is shown only when it is clearly better. Agree it with the department before changing it.`
+  : `Για κάθε ημερήσιο έλεγχο: οι ώρες του, η συνήθης ώρα κάθε καταγραφής τις τελευταίες ${TIME_FIT_DAYS} ημέρες και οι ακέραιες ώρες που θα έπιαναν τις περισσότερες καταγραφές μέσα στο περιθώριο (±1 ώρα). Πρόταση εμφανίζεται μόνο όταν είναι σαφώς καλύτερη. Συμφωνήστε την με το τμήμα πριν την αλλαγή.`
 
 interface ControlTimeFitPanelProps { report: TimeFitReport, organizationId: string | null | undefined, language: string, canChange: boolean, onChanged?: () => void, onOpen?: (item: ControlRecord) => void }
 export function ControlTimeFitPanel({ report, organizationId, language, canChange, onChanged, onOpen }: ControlTimeFitPanelProps) {

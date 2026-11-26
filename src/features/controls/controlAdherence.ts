@@ -77,6 +77,13 @@ export function countAdherence(history: HistoryEntry[], frequency: ControlFreque
   return { performed: marks.length, onTime: marks.filter((mark) => mark.onTime).length }
 }
 
+// When an assignment's schedule starts: the later of the day the control was given to the department
+// (control_assignments.created_at, owner 26/11/2026) and the day the control was created.
+export function assignmentStart(assignment: { createdAt?: string | null } | null | undefined, item: { createdAt?: string | null } | null | undefined) {
+  const times = [assignment?.createdAt, item?.createdAt].filter(Boolean).map((value) => new Date(value as string).getTime()).filter(Number.isFinite)
+  return times.length ? new Date(Math.max(...times)).toISOString() : null
+}
+
 // One assignment (control × department) over [from, to]. `counts`
 // ({ performed, onTime }) comes from the database (control_adherence_counts,
 // which applies the same start, end and grace); without it the history is counted.
@@ -108,7 +115,7 @@ export function programmeAdherence(rows: ControlRow[] | null | undefined, period
       const assignment = item.assignments?.[department]
       if (!assignment) continue
       const counts = countsByAssignment ? countsByAssignment.get(assignment.dbId) || { performed: 0, onTime: 0 } : null
-      const result = assignmentAdherence({ frequency: assignment.frequency || item.frequency, history: assignment.history || [], startedAt: assignment.createdAt || item.createdAt, counts }, period)
+      const result = assignmentAdherence({ frequency: assignment.frequency || item.frequency, history: assignment.history || [], startedAt: assignmentStart(assignment, item), counts }, period)
       if (!result.expected && !result.performed) continue
       lines.push({ item, department, frequency: assignment.frequency || item.frequency, ...result })
     }

@@ -6,9 +6,9 @@
 //
 //   daily, N times a day   the day holds N slots (the execution times, or the
 //                          day split evenly). With execution times each slot
-//                          has a window: from 1 hour before its time to 2 hours
-//                          after it when once a day, 1 hour after when more
-//                          often (frequency.toleranceMinutes sets the margin
+//                          has a window: from 1 hour before its time to 1 hour
+//                          after it (owner, 26/11/2026: ±1 hour for every
+//                          control; frequency.toleranceMinutes sets the margin
 //                          after), never past the next slot or 23:59:59. The
 //                          day split evenly keeps the old rule: by the next
 //                          slot, the last by 23:59:59. The k-th entry of a day
@@ -44,7 +44,7 @@ const DAY_MINUTES = 1440
 // The window around a set time: minutes before it, and after it when the
 // control is done once a day or more often.
 export const SLOT_EARLY_MINUTES = 60
-export const SLOT_MARGIN_ONCE = 120
+export const SLOT_MARGIN_ONCE = 60
 export const SLOT_MARGIN_SEVERAL = 60
 
 const formatters = new Map<string, Intl.DateTimeFormat>()
@@ -146,7 +146,7 @@ export function slotDeadline(frequency: Frequency, d: Day, index: number, timeZo
 }
 
 // Minutes after a set time that still count as on time: the control's own
-// margin, otherwise 2 hours once a day and 1 hour more often; 0 (by the next
+// margin, otherwise 1 hour (once a day or more often); 0 (by the next
 // slot) when the day is split evenly without times.
 export function slotMargin(frequency: Frequency = {}) {
   const tolerance = Number(frequency.toleranceMinutes)

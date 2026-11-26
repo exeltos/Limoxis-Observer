@@ -38,10 +38,10 @@ export function periodTiles(o: DepartmentHomeOverview | null, { language, module
     detail: `${tr('στόχος', 'target')} ${target}% · ${en ? plural(n(o?.handHygieneObservations), 'observation', 'observations') : plural(n(o?.handHygieneObservations), 'παρατήρηση', 'παρατηρήσεις')}`,
     change: { value: delta(o?.handHygienePct == null ? null : Math.round(o.handHygienePct), c?.handHygienePct == null ? null : Math.round(c.handHygienePct)), worseUp: false, points: true },
   })
-  // «Έλεγχοι εκτός χρόνου»: entries of the period done outside their window and assignments fallen overdue in it (not
-  // done yet); the small line keeps today's overdue controls.
+  // «Καθυστερημένες καταχωρίσεις» (owner 26/11/2026): entries of the period done outside ±1 hour of their time; the
+  // small line keeps the controls overdue now.
   if (moduleEnabled('controls')) tiles.push({
-    key: 'controls', label: tr('Έλεγχοι εκτός χρόνου', 'Controls out of time'), value: numberText(o?.lateControls, en), tone: n(o?.lateControls) > 0 ? 'danger' : null, to: '/controls',
+    key: 'controls', label: tr('Καθυστερημένες καταχωρίσεις', 'Late entries'), value: numberText(o?.lateControls, en), tone: n(o?.lateControls) > 0 ? 'danger' : null, to: '/controls',
     detail: tr(`σήμερα: ${n(o?.overdueControls)} ${n(o?.overdueControls) === 1 ? 'εκπρόθεσμος' : 'εκπρόθεσμοι'}`, `today: ${n(o?.overdueControls)} overdue`),
     change: { value: delta(o?.lateControls, c?.lateControls), worseUp: true },
   })

@@ -36,7 +36,7 @@ export interface PeriodFigures {
   newIsolation: number | null
   handHygienePct: number | null
   handHygieneObservations: number | null
-  // «Έλεγχοι εκτός χρόνου»: entries done outside their window, and assignments fallen overdue in the period and not done yet.
+  // «Καθυστερημένες καταχωρίσεις»: entries done outside ±1 hour of their time (owner 26/11/2026).
   lateControls: number | null
 }
 

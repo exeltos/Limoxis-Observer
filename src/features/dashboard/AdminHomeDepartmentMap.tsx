@@ -12,7 +12,8 @@ const LABELS: Record<MapColumn, [string, string]> = {
   positives: ['Θετικά (MDR)', 'Positives (MDR)'],
   episodes: ['Επεισόδια', 'Episodes'],
   handHygiene: ['Υγιεινή χεριών', 'Hand hygiene'],
-  lateControls: ['Εκτός χρόνου', 'Out of time'],
+  overdueControls: ['Εκπρόθεσμοι', 'Overdue'],
+  lateControls: ['Καθυστερήσεις', 'Late entries'],
   capa: ['Διορθωτικές', 'Corrective'],
   certificates: ['Ληγμένα πιστοπ.', 'Expired certs'],
 }

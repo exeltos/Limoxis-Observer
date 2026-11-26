@@ -14,7 +14,7 @@ describe('control times against practice', () => {
   })
   it('counts the entries in their windows and gives the usual time', () => {
     const f = { kind: 'daily', times: ['09:00'] }
-    expect(fitCount(f, [[h(7), h(7, 30), h(8, 30), h(10, 30), h(11, 30)]])).toBe(2)
+    expect(fitCount(f, [[h(7), h(7, 30), h(8, 30), h(9, 30), h(10, 30)]])).toBe(2)
     expect(typicalTime([h(7), h(7, 12), h(19)])).toBe(h(7, 10))
   })
   it('proposes 07:00 and 15:00 for a twice-a-day control done at 07:00 and 15:00, keeps a fitting 08:00', () => {

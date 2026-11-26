@@ -39,6 +39,8 @@ export interface AdminHomeProps {
   // The period's figures by department (hospital_department_period_matrix) and the active possible clusters.
   matrix: HospitalMatrix | null
   matrixStatus: 'loading' | 'ready' | 'error'
+  // The departments hidden on the Controls screen: «—» in the map's controls columns.
+  hiddenControls?: ReadonlySet<string> | null
   clusters: ClusterLike[] | null
   // Laboratory and surveillance: only for whoever reads clinical data (not the Quality Manager).
   clinical: boolean
@@ -54,7 +56,7 @@ export interface AdminHomeProps {
   onDecision: (item: AdminDecision) => void
 }
 
-export function AdminHome({ language, overview, window, status, moduleEnabled, tiles, departments, departmentColumns, matrix, matrixStatus, clusters, clinical, decisions, decisionsNote, week, calendarOn, announcements, canOpen, onOpen, onDecision }: AdminHomeProps) {
+export function AdminHome({ language, overview, window, status, moduleEnabled, tiles, departments, departmentColumns, matrix, matrixStatus, hiddenControls = null, clusters, clinical, decisions, decisionsNote, week, calendarOn, announcements, canOpen, onOpen, onDecision }: AdminHomeProps) {
   const [announcementsOpen, setAnnouncementsOpen] = useState(false)
   const en = language === 'en'
   const tr = (el: string, enText: string) => en ? enText : el
@@ -81,11 +83,11 @@ export function AdminHome({ language, overview, window, status, moduleEnabled, t
     ...(shownModule('laboratory') ? ['positives' as const] : []),
     ...(shownModule('surveillance') ? ['episodes' as const] : []),
     ...(shownModule('prevention') ? ['handHygiene' as const] : []),
-    ...(shownModule('controls') ? ['lateControls' as const] : []),
+    ...(shownModule('controls') ? ['overdueControls' as const, 'lateControls' as const] : []),
     ...(departmentColumns.capa ? ['capa' as const] : []),
     ...(departmentColumns.certificates ? ['certificates' as const] : []),
   ]
-  const mapRows = departmentMap(matrix, departments, { columns, comparing, language })
+  const mapRows = departmentMap(matrix, departments, { columns, comparing, language, hiddenControls })
   const alerts = homeAlerts({ clusters: clinical ? clusters : [], matrix: shownModule('prevention') ? matrix : null, decisions, canOpen, language })
   const openAlert = (alert: HomeAlert) => {
     const decision = (decisions || []).find(item => item.key === alert.key)

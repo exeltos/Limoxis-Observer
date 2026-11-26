@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ADHERENCE_PERIODS, assignmentAdherence, expectedOccurrences, missedDays, periodAdherence, periodRange, periodShort, programmeAdherence, slotLength, todayProgress } from '../src/features/controls/controlAdherence'
+import { ADHERENCE_PERIODS, assignmentAdherence, assignmentStart, expectedOccurrences, missedDays, periodAdherence, periodRange, periodShort, programmeAdherence, slotLength, todayProgress } from '../src/features/controls/controlAdherence'
 import type { ControlRow } from '../src/features/controls/controlTypes'
 
 const day = 86400000
@@ -129,5 +129,21 @@ describe('the missed days of a control every N days', () => {
     expect(missedDays({ kind: 'custom', interval: 4 }, new Map(), range, null)).toEqual([])
     // a daily control with no entry still names its days
     expect(missedDays({ kind: 'daily', timesPerDay: 1 }, new Map(), range, null).length).toBeGreaterThan(20)
+  })
+})
+
+// Owner, 26/11/2026: «due» and the missed executions count from the day the control was given to the department.
+describe('the start of an assignment', () => {
+  it('is the later of the assignment and the control', () => {
+    expect(assignmentStart({ createdAt: '2026-10-25T22:00:00Z' }, { createdAt: '2023-10-11T09:00:00Z' })).toBe('2026-10-25T22:00:00.000Z')
+    expect(assignmentStart({ createdAt: null }, { createdAt: '2023-10-11T09:00:00Z' })).toBe('2023-10-11T09:00:00.000Z')
+    expect(assignmentStart(null, null)).toBeNull()
+  })
+  it('counts nothing due before a department was given the control', () => {
+    const item = { id: 'c1', title: 'Δίσκος', createdAt: '2023-10-11T09:00:00Z', frequency: { kind: 'daily', times: ['09:00'] },
+      assignments: { 'ΜΕΘ': { dbId: 'a1', createdAt: '2026-11-20T22:00:00Z', history: [] } } }
+    const { lines } = programmeAdherence([{ item, departments: ['ΜΕΘ'] }] as unknown as ControlRow[], { from: '2026-10-31T22:00:00Z', to: '2026-11-30T21:59:59Z', now: '2026-11-25T22:00:00Z' })
+    expect(lines[0].expected).toBe(5)
+    expect(lines[0].missed).toBe(5)
   })
 })

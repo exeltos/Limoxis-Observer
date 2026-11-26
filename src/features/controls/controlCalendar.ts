@@ -4,7 +4,7 @@
 // (monthly, yearly, every 4+ weeks) are shown as dated events: done, done
 // late, missed, or planned.
 import { calculateNextDue } from './controlScheduling'
-import { expectedOccurrences } from './controlAdherence'
+import { assignmentStart, expectedOccurrences } from './controlAdherence'
 import { executionMarks } from './controlDueRules'
 import type { ControlExecution, ControlFrequency, ControlRecord } from './controlTypes'
 import type { CalendarMonthCount } from './controlCloudService'
@@ -112,7 +112,7 @@ export function programmeCalendar(rows: { item: CalendarControl, departments: st
       const months = assignmentCalendar({
         frequency: assignment.frequency || item.frequency,
         history: assignment.history || [],
-        startedAt: assignment.createdAt || item.createdAt,
+        startedAt: assignmentStart(assignment, item),
         nextDueAt: assignment.nextDueAt,
         paused: assignment.status === 'paused',
         monthCounts: monthsByAssignment ? monthsByAssignment.get(assignment.dbId as string) || [] : null,

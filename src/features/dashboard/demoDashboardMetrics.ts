@@ -8,6 +8,7 @@ import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { loadControlAssignmentsLocal, loadControlDefinitionsLocal, loadControlExecutionsLocal } from '../controls/controlStore'
 import { periodBounds, zonedInstant } from '../controls/controlDueRules'
 import { countAdherence } from '../controls/controlAdherence'
+import { controlTypeCode } from '../controls/controlVocabulary'
 import type { ControlFrequency } from '../controls/controlTypes'
 import { loadQualityLocal } from '../quality/qualityStore'
 import { loadCommittees } from '../committees/committeeData'
@@ -174,11 +175,11 @@ export function collectDemoDepartmentHome({ department, now = new Date(), window
     const compliant = rows.reduce((sum, row) => sum + row.compliant, 0)
     return { handHygienePct: observations ? Math.round(compliant / observations * 1000) / 10 : null, handHygieneObservations: observations }
   }
-  // «Έλεγχοι εκτός χρόνου»: entries done outside their window (controlAdherence, as control_adherence_counts), and
-  // assignments fallen overdue in the period and not done yet.
+  // «Καθυστερημένες καταχωρίσεις»: entries done outside their window (controlAdherence, as control_adherence_counts),
+  // without paused assignments and cultures; the overdue ones are overdueControls (now).
   const definitions = new Map(loadControlDefinitionsLocal().map(row => [row.id, row]))
   const executions = loadControlExecutionsLocal()
-  const assignments = loadControlAssignmentsLocal().filter(inDepartment)
+  const assignments = loadControlAssignmentsLocal().filter(inDepartment).filter(row => row.status !== 'paused' && controlTypeCode(definitions.get(row.control_id)?.category) !== 'CTRL-ENV')
   const lateControls = (range: { from: string, to: string }) => {
     const start = zonedInstant(...(range.from.split('-').map(Number) as [number, number, number]))
     const [year, month, day] = range.to.split('-').map(Number)
@@ -189,7 +190,6 @@ export function collectDemoDepartmentHome({ department, now = new Date(), window
       const history = executions.filter(row => row.assignment_id === assignment.id).map(row => ({ at: row.performed_at, status: row.status, cancelledAt: row.cancelled_at, isExtra: row.is_extra }))
       const { performed, onTime } = countAdherence(history, frequency, start, end)
       late += performed - onTime
-      if (isOpen(assignment.status) && assignment.next_due_at && new Date(assignment.next_due_at) >= start && new Date(assignment.next_due_at) <= end) late += 1
     }
     return late
   }
@@ -256,7 +256,7 @@ export function collectDemoDepartmentMatrix({ now = new Date(), window = departm
       episodes: (o.newSurveillance ?? 0) + (o.newIsolation ?? 0), compareEpisodes: (o.compare.newSurveillance ?? 0) + (o.compare.newIsolation ?? 0),
       handHygienePct: o.handHygienePct, handHygieneObservations: o.handHygieneObservations, compareHandHygienePct: o.compare.handHygienePct,
       handHygieneTarget: DEFAULT_HAND_HYGIENE_TARGET,
-      lateControls: o.lateControls, compareLateControls: o.compare.lateControls,
+      lateControls: o.lateControls, compareLateControls: o.compare.lateControls, overdueControls: o.overdueControls,
     }
   })
   return { hospitalTarget: DEFAULT_HAND_HYGIENE_TARGET, departments }

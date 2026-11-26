@@ -6,6 +6,8 @@ import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { navigationFor } from '../../app/navigation'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { useOptionalAuth } from '../../core/auth/AuthContext'
+import { useViewPreference } from '../../core/preferences/viewPreferences'
 import { useNotifications } from '../../core/notifications/NotificationContext'
 import { CAPABILITIES, ROLES, can, isProfileDisabled } from '../../core/permissions/roles'
 import { useNavigate } from 'react-router-dom'
@@ -47,6 +49,7 @@ const DepartmentHome=lazyPage(()=>import('./DepartmentHome'),'DepartmentHome')
 // The Department User's and the Link Nurse's home (four figures, their day, trainings, the department's week): its own chunk.
 const UserHome=lazyPage(()=>import('./UserHome'),'UserHome')
 // The hospital administrator's home (five figures, the departments, what else needs a decision, the week): its own chunk.
+const NO_HIDDEN_DEPARTMENTS: string[]=[]
 const AdminHome=lazyPage(()=>import('./AdminHome'),'AdminHome')
 type AdminDecision=import('./AdminHome').AdminDecision
 
@@ -131,6 +134,10 @@ const HOSPITAL_HOME_ROLES: ReadonlySet<string>=new Set([ROLES.HOSPITAL_ADMIN,ROL
 // userHome: the Department User's and the Link Nurse's home (four figures, then their day, the department's week and the announcements).
 export function DashboardPage({title,subtitle,showKpis=true,department=null,departmentHome=false,userHome=false}: { title?: string, subtitle?: string, showKpis?: boolean, department?: string | null, departmentHome?: boolean, userHome?: boolean }={}) {
   const { role: actualRole, actualRole: signedInRole, tenant, isDemo, moduleEnabled, membership } = useTenant()
+  const user = useOptionalAuth()?.user
+  // The departments hidden on the Controls screen (owner 26/11/2026): «—» in the map's controls columns.
+  const [hiddenControlList] = useViewPreference<string[]>(tenant?.id, user?.id, 'controls.hiddenDepartments', NO_HIDDEN_DEPARTMENTS)
+  const hiddenControls = useMemo(() => new Set(Array.isArray(hiddenControlList) ? hiddenControlList : []), [hiddenControlList])
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
   const role=actualRole===ROLES.DEMO||(actualRole===ROLES.PLATFORM_OWNER&&tenant)?ROLES.HOSPITAL_ADMIN:actualRole
@@ -340,7 +347,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null,depa
     return <Page fill className="dashboard-page" title={title||tr('Αρχική','Home')} subtitle={<><span className="dephome-subtitle-period">{subtitleParts.period} </span>{subtitleParts.compare}</>} actions={<DepartmentPeriodControls window={periodWindow} language={language} onKind={departmentPeriod.setKind} onChoice={departmentPeriod.setChoice} onStep={departmentPeriod.step}/>}>
       <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
       <Suspense fallback={<RouteLoading/>}><AdminHome language={language} overview={overview} window={periodWindow} status={overviewStatus} moduleEnabled={moduleEnabled} tiles={capaTiles}
-        matrix={demoMatrix||hospitalMatrix.data} matrixStatus={demoMatrix?'ready':hospitalMatrix.status} clusters={clusters} clinical={clinicalHome}
+        matrix={demoMatrix||hospitalMatrix.data} matrixStatus={demoMatrix?'ready':hospitalMatrix.status} hiddenControls={hiddenControls} clusters={clusters} clinical={clinicalHome}
         departments={adminCountEvents?departmentsNeedingAttention(adminCountEvents,calendarSources?.training,Number.POSITIVE_INFINITY,adminNow):null} departmentColumns={{controls:moduleEnabled('controls')&&allowedKinds.includes('controls'),capa:moduleEnabled('quality')&&allowedKinds.includes('capa'),certificates:certificatesOn}}
         decisions={metricsState==='loading'?null:otherDecisionItems(decisionMetrics,{moduleEnabled,canOpen,language})} decisionsNote={metricsState==='error'?tr('Κάποιες εκκρεμότητες δεν φορτώθηκαν.','Some pending items did not load.'):null} onDecision={openDecision}
         week={adminEvents?weekSummary(adminEvents,homeToday,language):null} calendarOn={calendarOn}
