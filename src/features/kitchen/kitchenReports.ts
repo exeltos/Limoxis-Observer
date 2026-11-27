@@ -165,8 +165,9 @@ export function kitchenListExport(kind: string, rows: readonly KitchenListRow[],
       row: r => [r.usedOn, r.productName, r.lotLabel, r.batch?.receiptCode || '', r.batch?.supplierName || '', r.quantity, unitLabel(r.unit, language), r.dishName, r.recordedByName] },
     recall: { name: L('askiseis-anaklisis', 'recall-drills'), headers: [L('Κωδικός', 'Code'), L('Ημερομηνία', 'Date'), L('Σενάριο', 'Scenario'), L('Αντικείμενο', 'Subject'), L('Αφορμή', 'Trigger'), L('Λεπτά', 'Minutes'), L('Στόχος (λεπτά)', 'Target (min)'), L('Ισοζύγιο %', 'Balance %'), L('Ημέρες', 'Days'), L('Γεύματα', 'Meals'), L('Μερίδες', 'Portions'), L('Αποτέλεσμα', 'Result'), L('Κατάσταση', 'Status'), L('Διενήργησε', 'Conducted by')],
       row: r => [r.code, r.drillDate, recallScenarioLabel(r.scenario, language), r.subject, r.triggerText, r.elapsedMinutes, r.targetMinutes, r.accountedPercent, r.affectedDays, r.affectedMeals, r.affectedPortions, r.result ? recallResultLabel(r.result, language) : '', r.status === 'completed' ? L('Ολοκληρώθηκε', 'Completed') : L('Σε εξέλιξη', 'In progress'), r.conductedByName] },
-    products: { name: L('proionta', 'products'), headers: [L('Προϊόν', 'Product'), L('Κατηγορία', 'Category'), L('Αποθήκευση', 'Storage'), L('Μονάδα', 'Unit'), L('Προμηθευτής', 'Supplier'), L('Κωδικός προμηθευτή', 'Supplier code'), L('Όριο αποθέματος', 'Low stock at'), L('Ενεργό', 'Active')],
-      row: r => [r.name, r.categoryLabel, storageLabel(r.storage, language), unitLabel(r.unit, language), r.supplierName, r.supplierCode, r.lowStockQuantity, yes(r.active !== false, en)] },
+    // By supplier, as FileMaker's «ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ» (the rows come sorted by supplier and name).
+    products: { name: L('proionta', 'products'), headers: [L('Προμηθευτής', 'Supplier'), L('Κωδικός προμηθευτή', 'Supplier code'), L('Προϊόν', 'Product'), L('Κατηγορία', 'Category'), L('Αποθήκευση', 'Storage'), L('Μονάδα', 'Unit'), L('Όριο αποθέματος', 'Low stock at'), L('Ενεργό', 'Active')],
+      row: r => [r.supplierName, r.supplierCode, r.name, r.categoryLabel, storageLabel(r.storage, language), unitLabel(r.unit, language), r.lowStockQuantity, yes(r.active !== false, en)] },
   }
   const sheet = sheets[kind]
   return { name: `${en ? 'kitchen' : 'kouzina'}-${sheet.name}`, headers: sheet.headers, rows: rows.map(sheet.row) }

@@ -33,12 +33,12 @@ describe('time zone helpers (Europe/Athens)', () => {
 })
 
 describe('due rules per frequency', () => {
-  it('once a day: due 2 hours after its time; an entry just before 09:00 makes it due tomorrow at 11:00', () => {
+  it('once a day: due 1 hour after its time; an entry just before 09:00 makes it due tomorrow at 10:00', () => {
     const at = new Date('2026-10-19T05:55:00Z') // 08:55 Athens
-    expect(slotMargin(daily1)).toBe(120)
-    expect(nextDueAfterExecution(daily1, at, 1)).toBe('2026-10-20T08:00:00.000Z') // tomorrow 11:00
-    // Nothing yet today: due by 11:00 today.
-    expect(nextDueAfterExecution(daily1, at, 0)).toBe('2026-10-19T08:00:00.000Z')
+    expect(slotMargin(daily1)).toBe(60)
+    expect(nextDueAfterExecution(daily1, at, 1)).toBe('2026-10-20T07:00:00.000Z') // tomorrow 10:00
+    // Nothing yet today: due by 10:00 today.
+    expect(nextDueAfterExecution(daily1, at, 0)).toBe('2026-10-19T07:00:00.000Z')
   })
   it('N times a day: each time 1 hour after it', () => {
     const morning = new Date('2026-10-19T04:30:00Z') // 07:30 Athens
@@ -72,7 +72,7 @@ describe('due rules per frequency', () => {
     expect(periodBounds(daily1, afterMidnight).start.toISOString()).toBe('2026-10-19T21:00:00.000Z')
   })
   it('across the October change: due by 23:59:59 local in winter time', () => {
-    expect(nextDueAfterExecution(daily1, new Date('2026-10-25T00:30:00Z'), 1)).toBe('2026-10-26T09:00:00.000Z') // 11:00 EET
+    expect(nextDueAfterExecution(daily1, new Date('2026-10-25T00:30:00Z'), 1)).toBe('2026-10-26T08:00:00.000Z') // 10:00 EET
     expect(nextDueAfterExecution(daily4, new Date('2026-10-25T00:30:00Z'), 0)).toBe('2026-10-25T06:00:00.000Z') // 08:00 EET
   })
   it('weekly: by Sunday of the next week; every two weeks, the week after', () => {
@@ -126,12 +126,12 @@ describe('period progress and marks', () => {
   it('is on time from 1 hour before to the margin after; later the same day it is late', () => {
     const at = (time) => ({ at: new Date(zonedInstant(2026, 10, 19, Number(time.slice(0, 2)) * 60 + Number(time.slice(3)))).toISOString() })
     const onTime = (rows, f) => executionMarks(rows, f).map((m) => m.onTime)
-    // Once a day at 08:00: 07:00–10:00.
+    // Once a day at 08:00: 07:00–09:00 (±1 hour, owner 26/11/2026).
     const once = { kind: 'daily', times: ['08:00'] }
     expect(onTime([at('06:59')], once)).toEqual([false])
     expect(onTime([at('07:00')], once)).toEqual([true])
-    expect(onTime([at('10:00')], once)).toEqual([true])
-    expect(onTime([at('10:01')], once)).toEqual([false])
+    expect(onTime([at('09:00')], once)).toEqual([true])
+    expect(onTime([at('09:01')], once)).toEqual([false])
     // Three times (08:00, 14:00, 23:00): ±1 hour each.
     const three = { kind: 'daily', times: ['08:00', '14:00', '23:00'] }
     expect(onTime([at('08:30'), at('13:10'), at('23:45')], three)).toEqual([true, true, true])
@@ -214,10 +214,10 @@ describe('over-entry guard', () => {
 describe('working days only (Monday–Friday)', () => {
   const f = { kind: 'daily', times: ['08:00'], weekdaysOnly: true }
   it('skips the weekend: after Friday or at the weekend, due on Monday', () => {
-    expect(nextDueAfterExecution(f, new Date('2026-10-16T05:00:00Z'), 1)).toBe('2026-10-19T07:00:00.000Z') // Fri → Mon 10:00
-    expect(nextDueAfterExecution(f, new Date('2026-10-17T05:00:00Z'), 1)).toBe('2026-10-19T07:00:00.000Z') // Sat → Mon 10:00
-    expect(nextDueAfterExecution({ ...f, weekdaysOnly: undefined }, new Date('2026-10-16T05:00:00Z'), 1)).toBe('2026-10-17T07:00:00.000Z')
-    expect(nextDeadlineAfter(f, new Date('2026-10-16T08:00:00Z'))).toBe('2026-10-19T07:00:00.000Z')
+    expect(nextDueAfterExecution(f, new Date('2026-10-16T05:00:00Z'), 1)).toBe('2026-10-19T06:00:00.000Z') // Fri → Mon 09:00
+    expect(nextDueAfterExecution(f, new Date('2026-10-17T05:00:00Z'), 1)).toBe('2026-10-19T06:00:00.000Z') // Sat → Mon 09:00
+    expect(nextDueAfterExecution({ ...f, weekdaysOnly: undefined }, new Date('2026-10-16T05:00:00Z'), 1)).toBe('2026-10-17T06:00:00.000Z')
+    expect(nextDeadlineAfter(f, new Date('2026-10-16T08:00:00Z'))).toBe('2026-10-19T06:00:00.000Z')
   })
   it('expects no entry at the weekend', () => {
     // Monday 12 to Monday 19 October: five working days.

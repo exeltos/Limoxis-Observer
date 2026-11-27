@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FigureCards } from '../../design-system/FigureCards'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ChefHat, ClipboardCheck, Package, Pencil, Plus, Route, Trash2, Truck, Undo2 } from 'lucide-react'
+import { AlertTriangle, ChefHat, ClipboardCheck, EyeOff, Package, Pencil, Plus, RotateCcw, Route, Trash2, Truck, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { SignalBadge } from '../../design-system/StatusBadge'
@@ -21,7 +21,7 @@ import { reportExports } from '../../core/export/reportDocument'
 import { KitchenList, LimitBadge, matches, useKitchenActor, useKitchenTrace, type KitchenFilterProps, type KitchenPanelProps } from './KitchenShared'
 import { limitText } from './kitchenLimits'
 import { RECEIPT_CHECK_FIELDS, shortDay, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, newReceipt, fmtQty, fmtTemp, haccpReviewDue, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu } from './kitchenModel'
-import { kitchenErrorMessage, removeEntry, reopen, saveSettings, signOff } from './kitchenService'
+import { kitchenErrorMessage, removeEntry, reopen, saveSettings, saveSimple, signOff } from './kitchenService'
 import { traceabilityDocument } from './kitchenReports'
 import type { overview } from './kitchenModel'
 import type { KitchenBatch, KitchenProduct, KitchenScreenState, KitchenSettings, KitchenState } from './kitchenTypes'
@@ -156,7 +156,10 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
     .sort((a, b) => String(b.receivedOn).localeCompare(String(a.receivedOn)) || String(a.productName).localeCompare(String(b.productName), 'el'))
   const products = (state.products || []).map(item => ({ ...item, supplierName: suppliers.get(item.supplierId) || '', categoryLabel: categoryLabel(item.category, language) }))
     .filter(item => (filters.category === 'all' || item.category === filters.category) && matches(filters.query, item.name, item.supplierName, item.supplierCode, item.categoryLabel))
-    .sort((a, b) => (a.supplierName ? 0 : 1) - (b.supplierName ? 0 : 1) || String(a.supplierName).localeCompare(String(b.supplierName), 'el') || a.name.localeCompare(b.name, 'el'))
+    .sort((a, b) => (a.supplierName ? 0 : 1) - (b.supplierName ? 0 : 1) || String(a.supplierName).localeCompare(String(b.supplierName), 'el') || Number(a.active === false) - Number(b.active === false) || a.name.localeCompare(b.name, 'el'))
+  // A product already received cannot be deleted (its batches keep the traceability): it is made inactive and leaves new
+  // receipts (owner, 27/11/2026); one never received can still be deleted.
+  const received = new Set((state.receipts || []).flatMap(receipt => (receipt.items || []).map(item => item.productId)).filter(Boolean))
   // Grouped by supplier, as FileMaker's «ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ».
   const grouped = products.flatMap((item, index): ProductListRow[] => (index === 0 || products[index - 1].supplierName !== item.supplierName ? [{ id: `group-${item.supplierName || 'none'}-${index}`, group: item.supplierName || (en ? 'No supplier' : 'Χωρίς προμηθευτή'), count: products.filter(other => other.supplierName === item.supplierName).length }, item] : [item]))
   const inner = <ModeSwitch ariaLabel={en ? 'Stock view' : 'Προβολή αποθέματος'} value={view} onChange={onView} options={[{ value: 'stock', label: en ? 'Received products' : 'Παραληφθέντα προϊόντα', icon: Package }, { value: 'products', label: en ? 'Product list' : 'Λίστα προϊόντων', icon: ClipboardCheck }]} />
@@ -164,17 +167,24 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
     if (!await confirm({ title: en ? 'Delete product' : 'Διαγραφή προϊόντος', message: en ? 'The product leaves the catalogue; receipts keep its name. A product no longer bought is better made inactive.' : 'Το προϊόν φεύγει από τη λίστα· οι παραλαβές κρατούν το όνομά του. Για προϊόν που δεν αγοράζεται πια, προτιμήστε «Ανενεργό».', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
     try { await removeEntry(organizationId, 'kitchen_products', item.id); await reload() } catch (error) { notify(kitchenErrorMessage(error, language), 'error') }
   }
+  async function setProductActive(item: KitchenProduct, active: boolean) {
+    try { await saveSimple(organizationId, 'kitchen_products', { ...item, active }); await reload() } catch (error) { notify(kitchenErrorMessage(error, language), 'error') }
+  }
   if (view === 'products') return <KitchenList rows={grouped} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeFilters={filters.category !== 'all' ? 1 : 0}
     onClear={() => setFilters(current => ({ ...current, query: '', category: 'all' }))} end={<>{switcher}{inner}{access.canManage && <Button onClick={() => onDialog({ type: 'product', initial: newProduct() })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>}</>}
     filters={<FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{PRODUCT_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>}
     columns={[{ key: 'code', label: en ? 'Supplier code' : 'Κωδικός προμηθευτή' }, { key: 'name', label: en ? 'Product' : 'Ονομασία / περιγραφή προϊόντος' }, { key: 'category', label: en ? 'Category' : 'Κατηγορία' }, { key: 'storage', label: en ? 'Storage' : 'Αποθήκευση' }, { key: 'actions', label: '' }]}
-    rowProps={item => ('group' in item ? { className: 'kitchen-group-row' } : {})}
+    rowProps={item => ('group' in item ? { className: 'kitchen-group-row' } : item.active === false ? { className: 'kitchen-inactive-row' } : {})}
     empty={!products.length} emptyTitle={en ? 'No products' : 'Δεν υπάρχουν προϊόντα'} emptyText={en ? 'The products the kitchen receives, with their storage and supplier.' : 'Τα προϊόντα που παραλαμβάνει η κουζίνα, με την αποθήκευση και τον προμηθευτή τους.'}
     renderRow={item => 'group' in item ? <td colSpan={5}><strong>{item.group}</strong><small>{item.count} {en ? 'products' : 'προϊόντα'}</small></td> : <>
       <td className="nowrap-cell">{item.supplierCode || '—'}</td>
       <td><strong>{item.name}</strong>{item.active === false && <small>{en ? 'Inactive' : 'Ανενεργό'}</small>}</td>
       <td>{item.categoryLabel}</td><td>{storageLabel(item.storage, language)}{item.lowStockQuantity !== '' && item.lowStockQuantity != null && <small>{en ? 'low at' : 'χαμηλό κάτω από'} {fmtQty(item.lowStockQuantity, language)} {unitLabel(item.unit, language)}</small>}</td>
-      <td><div className="row-actions">{access.canManage && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => onDialog({ type: 'product', initial: { ...item } })}><Pencil size={14} /></IconButton>}{access.canManage && <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => removeProduct(item)}><Trash2 size={14} /></IconButton>}</div></td>
+      <td><div className="row-actions">{access.canManage && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => onDialog({ type: 'product', initial: { ...item } })}><Pencil size={14} /></IconButton>}{access.canManage && (received.has(item.id)
+        ? (item.active === false
+          ? <IconButton size="sm" label={en ? 'Make active' : 'Ενεργοποίηση'} onClick={() => setProductActive(item, true)}><RotateCcw size={14} /></IconButton>
+          : <IconButton size="sm" label={en ? 'Make inactive (it has receipts, so it is not deleted)' : 'Απενεργοποίηση (έχει παραλαβές, δεν διαγράφεται)'} onClick={() => setProductActive(item, false)}><EyeOff size={14} /></IconButton>)
+        : <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => removeProduct(item)}><Trash2 size={14} /></IconButton>)}</div></td>
     </>} />
   return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeFilters={(filters.show !== 'in' ? 1 : 0) + (filters.storage !== 'all' ? 1 : 0)}
     onClear={() => setFilters(current => ({ ...current, query: '', show: 'in', storage: 'all' }))} end={<>{switcher}{inner}</>}

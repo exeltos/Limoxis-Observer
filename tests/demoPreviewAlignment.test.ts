@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+// The preview's sample data grows with the date (each day adds entries); it is measured on the day of the snapshot.
+vi.hoisted(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-23T10:00:00Z')) })
 import snapshot from './fixtures/demoSnapshot.json'
 import { employeeCertificates, employeeEvaluations, employeeRows, employeeVaccinations } from '../src/features/employees/employeeDemoData'
 import { demoAdmissionsForPatient, patientDemoData } from '../src/features/patients/patientDemoData'

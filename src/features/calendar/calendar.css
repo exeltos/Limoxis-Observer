@@ -109,3 +109,11 @@ button.calendar-card-more{cursor:pointer}
 @media(max-width:1180px){.calendar-month-layout{grid-template-columns:minmax(0,1fr) 250px}.calendar-month-head h3{min-width:120px}}
 @media(max-height:820px) and (min-width:781px){.calendar-card{padding:9px 12px}.calendar-glance-grid{gap:6px}.calendar-glance-grid>div{display:flex;align-items:baseline;gap:6px;padding:4px 8px}.calendar-glance-grid strong{font-size:15px}.calendar-glance-grid span{font-size:10.5px;line-height:1.2}}
 @media(max-width:780px){.calendar-month-view,.calendar-month-layout,.calendar-month,.calendar-grid,.calendar-side,.calendar-next-card,.calendar-next-list{flex:none;height:auto;min-height:0;overflow:visible}.calendar-month-layout{grid-template-columns:1fr}.calendar-grid{grid-auto-rows:minmax(58px,auto)}.calendar-month{padding:4px 6px 8px}.calendar-month-head h3{min-width:0;font-size:14px}.calendar-item-text{display:none}}
+/* A laptop (owner, 24/11/2026: «δεν είναι μια ευθεία γραμμή»): when the kinds do not fit beside the search, the period and
+   the department, they take a line of their own under them, in one straight row from the left edge. */
+@media (min-width:761px) and (max-width:1600px){
+  .calendar-pending .filter-primary-row{flex-wrap:wrap;row-gap:10px}
+  .calendar-pending .filter-primary-row>.filter-end{display:contents}
+  .calendar-pending .filter-primary-row .calendar-kinds{order:9;flex:1 0 100%;flex-wrap:nowrap;margin-left:0;overflow-x:auto}
+  .calendar-pending .filter-primary-row .calendar-kinds+*{margin-left:auto}
+}

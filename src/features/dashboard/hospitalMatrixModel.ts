@@ -1,6 +1,7 @@
 // «Χάρτης τμημάτων» and «Επισημάνσεις» of the hospital's home (owner, 24/11/2026, «ναι σε όλα»): for the period and its
 // comparison, one line per department — positive samples (MDR/XDR), new episodes and isolations, hand hygiene against the
-// department's target, controls out of time (hospital_department_period_matrix, 20261231638000) and, today, the overdue
+// department's target, late control entries and, now, overdue controls (owner 26/11/2026: «Εκτός χρόνου» split in two;
+// hospital_department_period_matrix, 20261231641000) and, today, the overdue
 // corrective actions and expired staff certificates (the calendar's, as «Τμήματα με τις περισσότερες εκκρεμότητες»).
 // Each cell is green, amber or red, with an arrow when it changed from the comparison period; the departments that need
 // attention first. Pure.
@@ -19,8 +20,10 @@ export interface MatrixDepartment {
   handHygieneObservations: number | null
   compareHandHygienePct: number | null
   handHygieneTarget: number
+  // Entries done outside ±1 hour in the period (with the comparison) and controls overdue now.
   lateControls: number | null
   compareLateControls: number | null
+  overdueControls: number | null
 }
 export interface HospitalMatrix { hospitalTarget: number, departments: MatrixDepartment[] }
 
@@ -37,12 +40,12 @@ export function normalizeHospitalMatrix(raw: Record<string, unknown> | null | un
       episodes: num(row.episodes), compareEpisodes: num(row.compareEpisodes),
       handHygienePct: num(row.handHygienePct), handHygieneObservations: num(row.handHygieneObservations), compareHandHygienePct: num(row.compareHandHygienePct),
       handHygieneTarget: num(row.handHygieneTarget) ?? hospitalTarget,
-      lateControls: num(row.lateControls), compareLateControls: num(row.compareLateControls),
+      lateControls: num(row.lateControls), compareLateControls: num(row.compareLateControls), overdueControls: num(row.overdueControls),
     })).filter(row => row.department),
   }
 }
 
-export type MapColumn = 'positives' | 'episodes' | 'handHygiene' | 'lateControls' | 'capa' | 'certificates'
+export type MapColumn = 'positives' | 'episodes' | 'handHygiene' | 'overdueControls' | 'lateControls' | 'capa' | 'certificates'
 export type CellTone = 'good' | 'warn' | 'bad' | 'none'
 // trend: the change from the comparison period; worse: whether that change is for the worse.
 export interface MapCell { text: string, tone: CellTone, trend: 'up' | 'down' | null, worse: boolean, title: string }
@@ -50,7 +53,7 @@ export interface MapRow { department: string, cells: Partial<Record<MapColumn, M
 // The screen each column opens.
 export const MAP_SCREENS: Record<MapColumn, string> = {
   positives: '/laboratory', episodes: '/surveillance?tab=episodes', handHygiene: '/prevention?tab=handHygiene',
-  lateControls: '/controls', capa: '/quality?tab=actions', certificates: '/training',
+  overdueControls: '/controls', lateControls: '/controls', capa: '/quality?tab=actions', certificates: '/training',
 }
 
 const trendOf = (now: number | null, before: number | null, comparing: boolean) => !comparing || now == null || before == null || now === before ? null : now > before ? 'up' as const : 'down' as const
@@ -62,10 +65,11 @@ function countCell(value: number | null, before: number | null, comparing: boole
   return { text, tone, trend, worse: trend === 'up', title: before != null && comparing ? `${label}: ${value} (${before})` : `${label}: ${value}` }
 }
 
-export interface MapOptions { columns: MapColumn[], comparing: boolean, language?: string }
+// hiddenControls: the departments the user hid on the Controls screen (controls.hiddenDepartments): «—» in the controls columns.
+export interface MapOptions { columns: MapColumn[], comparing: boolean, language?: string, hiddenControls?: ReadonlySet<string> | null }
 // The departments' lines: the period's figures by department (matrix) with today's overdue corrective actions and expired
 // staff certificates by department name (attention), the ones that need attention first (red ×3, amber ×1), then by name.
-export function departmentMap(matrix: HospitalMatrix | null, attention: DepartmentAttention[] | null, { columns, comparing, language = 'el' }: MapOptions): MapRow[] {
+export function departmentMap(matrix: HospitalMatrix | null, attention: DepartmentAttention[] | null, { columns, comparing, language = 'el', hiddenControls = null }: MapOptions): MapRow[] {
   const en = language === 'en'
   const tr = (el: string, enText: string) => en ? enText : el
   const today = new Map((attention || []).map(row => [row.department, row]))
@@ -93,8 +97,11 @@ export function departmentMap(matrix: HospitalMatrix | null, attention: Departme
           cells.handHygiene = { text: `${Math.round(pct)}%`, tone: pct >= target ? 'good' : pct >= target - 10 ? 'warn' : 'bad', trend, worse: trend === 'down',
             title: `${tr('Υγιεινή χεριών', 'Hand hygiene')}: ${Math.round(pct)}% · ${tr('στόχος', 'target')} ${target}%` }
         }
-      } else if (column === 'lateControls') {
-        cells.lateControls = countCell(row?.lateControls ?? null, row?.compareLateControls ?? null, comparing, tr('Έλεγχοι εκτός χρόνου', 'Controls out of time'))
+      } else if (column === 'overdueControls' || column === 'lateControls') {
+        const hidden = hiddenControls?.has(name) ?? false
+        cells[column] = column === 'overdueControls'
+          ? countCell(hidden ? null : row?.overdueControls ?? null, null, false, tr('Εκπρόθεσμοι έλεγχοι τώρα', 'Overdue controls now'))
+          : countCell(hidden ? null : row?.lateControls ?? null, row?.compareLateControls ?? null, comparing, tr('Καθυστερημένες καταχωρίσεις (εκτός ±1 ώρας)', 'Late entries (outside ±1 hour)'))
       } else {
         // Today's overdue corrective actions and expired staff certificates: any is red.
         const value = now ? now[column] : 0
