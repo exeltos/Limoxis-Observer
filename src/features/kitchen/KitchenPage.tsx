@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, ShieldCheck, Siren, Truck } from 'lucide-react'
+import { Blend, CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, ShieldCheck, Siren, Snowflake, Truck, Utensils } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -11,18 +11,24 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
 import { useKitchen, useKitchenAccess, type KitchenDialog, type KitchenFilterProps, type KitchenFilters } from './KitchenShared'
 import { HaccpPanel, OverviewPanel, PlanPanel, ReceiptsPanel, SettingsDialog, StockPanel, TraceDialog, VerificationPanel } from './KitchenPanels'
+import { DefrostListPanel, PureeingListPanel } from './KitchenProductionLists'
+import { OrderDialog, OrdersPanel } from './KitchenOrders'
+import { newOrder } from './kitchenOrders'
 import { DefrostDialog, LimitsDialog, MenuDialog, ProductDialog, ProductionDialog, PureeingDialog, ReceiptDialog, StepDialog, ThermalDialog, UsageDialog, WriteoffDialog } from './KitchenDialogs'
 import { KITCHEN_PRIMARY_ACTION, addDays, categoryLabel, newProduction, newReceipt, overview, productionForDay, resolveKitchenLocation, stockRows, todayKey } from './kitchenModel'
 import { dailyHaccpDocument, exportKitchenList, kitchenListExport, receiptsLogDocument } from './kitchenReports'
 import { registryMenu } from '../../core/export/registryExports'
 import { RecallDialog, RecallPanel } from './KitchenRecall'
 import { drillSubject, newRecallDrill, recallSummary } from './kitchenRecallModel'
-import type { KitchenListRow, KitchenRecallDrill, KitchenScreenState, KitchenStockRow } from './kitchenTypes'
+import type { KitchenListRow, KitchenRecallDrill, KitchenReceipt, KitchenScreenState, KitchenStockRow } from './kitchenTypes'
 
 const initialFilters = () => ({
   receipts: { query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' },
-  stock: { query: '', show: 'in', storage: 'all', category: 'all' },
-  plan: { query: '', when: 'all', from: '', to: '', view: 'days' },
+  orders: { query: '', stage: 'all', supplier: 'all' },
+  stock: { query: '', show: 'in', storage: 'all', category: 'all', supplier: 'all' },
+  plan: { query: '', when: 'all', from: '', to: '' },
+  defrosting: { query: '', from: '', to: '', limits: 'all' },
+  pureeing: { query: '', from: '', to: '', limits: 'all' },
   verification: { query: '', range: '30' },
   recall: { query: '', result: 'all', scenario: 'all' },
 })
@@ -73,7 +79,9 @@ export function KitchenPage() {
   const exportsFor: Record<string, ComponentProps<typeof ExportMenu>> = {
     today: dayDocument,
     // The period lists of the records (heat, defrosting, pureeing, materials in use) are Excel files here: they are recorded in the production day.
-    days: { ...dayDocument, items: [
+    production: view === 'defrosting' ? kitchenListMenu('defrosting', () => state.defrosting, en ? 'Defrosting' : 'Αποψύξεις')
+      : view === 'pureeing' ? kitchenListMenu('pureeing', () => state.pureeing, en ? 'Pureeing' : 'Πολτοποιήσεις')
+      : view === 'menus' ? {} : { ...dayDocument, items: [
       ...([
         ['thermal', en ? 'Heat treatments' : 'Θερμικές επεξεργασίες', () => state.thermal],
         ['defrosting', en ? 'Defrosting' : 'Αποψύξεις', () => state.defrosting],
@@ -84,17 +92,18 @@ export function KitchenPage() {
         { id: `x-${kind}`, kind: 'excel', label: `Excel · ${label}`, onClick: () => exportKitchenList(kind, rowsOf(), language) },
       ]),
     ] },
-    storage: view === 'receipts' ? { ...reportExports(() => receiptsLogDocument(receiptsInView.filter(row => row.receivedOn >= logFrom && row.receivedOn <= logTo), { from: logFrom, to: logTo, language }), { onBlocked: blocked }), onExcel: () => exportKitchenList('receipts', receiptsInView, language) }
-      : view === 'products' ? kitchenListMenu('products', productRows, en ? 'Products' : 'Προϊόντα') : kitchenListMenu('stock', () => stock, en ? 'Stock' : 'Απόθεμα'),
+    receipts: view === 'orders' ? {} : { ...reportExports(() => receiptsLogDocument(receiptsInView.filter(row => row.receivedOn >= logFrom && row.receivedOn <= logTo), { from: logFrom, to: logTo, language }), { onBlocked: blocked }), onExcel: () => exportKitchenList('receipts', receiptsInView, language) },
+    storage: view === 'products' ? kitchenListMenu('products', productRows, en ? 'Products' : 'Προϊόντα') : kitchenListMenu('stock', () => stock, en ? 'Stock' : 'Απόθεμα'),
     safety: kitchenListMenu('recall', () => (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) })), en ? 'Recall drills' : 'Ασκήσεις ανάκλησης'),
     haccp: {},
   }
   const exportProps = exportsFor[tab] || {}
   // One button per action: Export, and the one primary action of the tab.
-  const primary = access.canRecord ? KITCHEN_PRIMARY_ACTION[tab] : null
+  const primary = access.canRecord ? (tab === 'receipts' && view === 'orders' ? 'order' : KITCHEN_PRIMARY_ACTION[tab]) : null
   const primaryButton = ({
     production: <Button onClick={() => (summary!.production ? openDay(summary!.production.id) : setDialog({ type: 'production', initial: newProduction(today) }))}><ChefHat size={15} />{summary!.production ? (en ? 'Today\'s production' : 'Σημερινή παραγωγή') : (en ? 'Open today' : 'Άνοιγμα ημέρας')}</Button>,
     day: <Button onClick={() => setDialog({ type: 'production', initial: newProduction(today) })}><ChefHat size={15} />{en ? 'New day' : 'Νέα ημέρα'}</Button>,
+    order: <Button onClick={() => setDialog({ type: 'order', initial: null })}><ClipboardList size={15} />{en ? 'New order' : 'Νέα παραγγελία'}</Button>,
     receipt: <Button onClick={() => setDialog({ type: 'receipt', initial: newReceipt() })}><Truck size={15} />{en ? 'Receipt' : 'Παραλαβή'}</Button>,
     drill: <Button onClick={() => setRecall(newRecallDrill())}><Siren size={15} />{en ? 'New drill' : 'Νέα άσκηση'}</Button>,
   } as Record<string, ReactNode>)[primary as string]
@@ -106,21 +115,28 @@ export function KitchenPage() {
   const recall = recallSummary(state, today)
   const tabs = [
     { value: 'today', label: en ? 'Today' : 'Σήμερα', icon: LayoutDashboard },
-    { value: 'days', label: en ? 'Production days' : 'Ημέρες παραγωγής', icon: CalendarClock },
+    { value: 'receipts', label: en ? 'Orders & receipts' : 'Παραγγελίες & Παραλαβές', icon: Truck },
     { value: 'storage', label: en ? 'Storage' : 'Αποθήκη', icon: Package, count: summary!.expiring.filter(row => row.expired).length },
+    { value: 'production', label: en ? 'Production' : 'Παραγωγή', icon: CalendarClock },
     { value: 'safety', label: en ? 'Verification & recall' : 'Επαλήθευση & Ανάκληση', icon: ShieldCheck, count: summary!.toVerify + (recall.overdue ? 1 : 0) },
     { value: 'haccp', label: en ? 'HACCP plan' : 'Σχέδιο HACCP', icon: ClipboardList },
   ]
-  const storageSwitch = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view === 'receipts' ? 'receipts' : 'stock'} onChange={value => setLocation('storage', value)} options={[{ value: 'receipts', label: en ? 'Receipts' : 'Παραλαβές', icon: Truck }, { value: 'stock', label: en ? 'Stock' : 'Απόθεμα', icon: Package }]} />
-  const safetySwitch = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view === 'recall' ? 'recall' : 'verification'} onChange={value => setLocation('safety', value)} options={[{ value: 'verification', label: en ? 'Days to verify' : 'Προς επαλήθευση', icon: ShieldCheck }, { value: 'recall', label: en ? 'Recall drills' : 'Ασκήσεις ανάκλησης', icon: Siren }]} />
+  // One row of views under a tab (no switch inside a switch).
+  const viewSwitch = (owner: string, options: { value: string, label: string, icon: typeof Package }[]) => <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view || options[0].value} onChange={value => setLocation(owner, value)} options={options} />
+  const receiptsSwitch = viewSwitch('receipts', [{ value: 'orders', label: en ? 'Orders' : 'Παραγγελίες', icon: ClipboardList }, { value: 'receipts', label: en ? 'Receipts' : 'Παραλαβές', icon: Truck }])
+  const storageSwitch = viewSwitch('storage', [{ value: 'stock', label: en ? 'Stock' : 'Απόθεμα', icon: Package }, { value: 'products', label: en ? 'Products' : 'Προϊόντα', icon: ClipboardList }])
+  const productionSwitch = viewSwitch('production', [{ value: 'days', label: en ? 'Days' : 'Ημέρες', icon: ChefHat }, { value: 'defrosting', label: en ? 'Defrosting' : 'Αποψύξεις', icon: Snowflake }, { value: 'pureeing', label: en ? 'Pureeing' : 'Πολτοποιήσεις', icon: Blend }, { value: 'menus', label: en ? 'Menus' : 'Μενού', icon: Utensils }])
+  const safetySwitch = viewSwitch('safety', [{ value: 'verification', label: en ? 'Days to verify' : 'Προς επαλήθευση', icon: ShieldCheck }, { value: 'recall', label: en ? 'Recall drills' : 'Ασκήσεις ανάκλησης', icon: Siren }])
   const props = { state, access, reload, organizationId, onDialog: setDialog, onOpenDay: openDay, onTrace: setTrace, onRecall: setRecall, stock }
   return <Page fill className="registry-fill-page kitchen-page" title={en ? 'Kitchen' : 'Κουζίνα'} subtitle={en ? 'HACCP food safety: receipts and stock, the production day, critical limits, verification and traceability.' : 'Ασφάλεια τροφίμων HACCP: παραλαβές και απόθεμα, ημέρα παραγωγής, κρίσιμα όρια, επαλήθευση και ιχνηλασιμότητα.'} actions={actions}>
     <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Kitchen' : 'Κουζίνα'} />
     <section className={`surface registry-workspace workspace-column workspace-fill kitchen-workspace kitchen-tab-${tab}`}>
       {tab === 'today' && <OverviewPanel {...props} summary={summary!} onTab={setTab} onStockAttention={() => { setAllFilters(current => ({ ...current, stock: { ...current.stock, show: 'attention' } })); setLocation('storage', 'stock') }} />}
-      {tab === 'days' && <PlanPanel {...props} {...pair(filtersFor('plan'))} />}
-      {tab === 'storage' && view === 'receipts' && <ReceiptsPanel {...props} {...pair(filtersFor('receipts'))} switcher={storageSwitch} />}
-      {tab === 'storage' && view !== 'receipts' && <StockPanel {...props} {...pair(filtersFor('stock'))} view={view} switcher={storageSwitch} onView={value => setLocation('storage', value)} />}
+      {tab === 'receipts' && (view === 'orders' ? <OrdersPanel {...props} {...pair(filtersFor('orders'))} switcher={receiptsSwitch} /> : <ReceiptsPanel {...props} {...pair(filtersFor('receipts'))} switcher={receiptsSwitch} />)}
+      {tab === 'storage' && <StockPanel {...props} {...pair(filtersFor('stock'))} view={view} switcher={storageSwitch} />}
+      {tab === 'production' && (view === 'defrosting' ? <DefrostListPanel {...props} {...pair(filtersFor('defrosting'))} switcher={productionSwitch} />
+        : view === 'pureeing' ? <PureeingListPanel {...props} {...pair(filtersFor('pureeing'))} switcher={productionSwitch} />
+        : <PlanPanel {...props} {...pair(filtersFor('plan'))} view={view} switcher={productionSwitch} />)}
       {tab === 'safety' && (view === 'recall'
         ? <RecallPanel {...props} {...pair(filtersFor('recall'))} switcher={safetySwitch} />
         : <VerificationPanel {...props} {...pair(filtersFor('verification'))} switcher={safetySwitch} />)}
@@ -138,11 +154,13 @@ const pair = ([filters, setFilters]: FilterPair) => ({ filters, setFilters })
 // The dialogs of the kitchen, shared by the page and the records.
 interface KitchenDialogHostProps { dialog: KitchenDialog | null; setDialog: (dialog: KitchenDialog | null) => void; state: KitchenScreenState; stock: KitchenStockRow[]; dishes: string[]; organizationId: string | null; reload: () => Promise<unknown>; onOpenDay?: (id: string) => void }
 export function KitchenDialogHost({ dialog, setDialog, state, stock, dishes, organizationId, reload, onOpenDay }: KitchenDialogHostProps) {
+  const access = useKitchenAccess()
   if (!dialog) return null
   const close = () => setDialog(null)
   const common = { state, organizationId, onClose: close, onSaved: reload }
   switch (dialog.type) {
     case 'receipt': return <ReceiptDialog {...common} initial={dialog.initial} />
+    case 'order': return <OrderDialog {...common} initial={dialog.initial || newOrder()} canRecord={access.canRecord} canManage={access.canManage} onReceive={receipt => setDialog({ type: 'receipt', initial: receipt as KitchenReceipt })} />
     case 'thermal': return <ThermalDialog {...common} initial={dialog.initial} dishes={dishes} />
     case 'defrost': return <DefrostDialog {...common} initial={dialog.initial} stock={stock} />
     case 'pureeing': return <PureeingDialog {...common} initial={dialog.initial} dishes={dishes} />

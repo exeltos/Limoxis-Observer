@@ -23,7 +23,7 @@ export type LibraryMeta = {
 // Μια γραμμή master_library_items όπως τη διαβάζουν οι υπηρεσίες (με όσα πεδία επέλεξαν).
 export type LibraryItemRow = Pick<Tables<'master_library_items'>, 'id' | 'name_el' | 'name_en' | 'code' | 'metadata' | 'source_authority' | 'source_version'> & Partial<Pick<Tables<'master_library_items'>, 'category' | 'is_active' | 'library_key'>>
 // Ένα τμήμα όπως το διαβάζει η βιβλιοθήκη των τμημάτων.
-export type DepartmentLibraryRow = Pick<Tables<'departments'>, 'id' | 'name' | 'code' | 'department_type'> & Partial<Pick<Tables<'departments'>, 'is_active'>>
+export type DepartmentLibraryRow = Pick<Tables<'departments'>, 'id' | 'name' | 'code' | 'department_type'> & Partial<Pick<Tables<'departments'>, 'is_active' | 'is_kitchen'>>
 
 // Μια πηγή αναφοράς (external_reference_versions) όπως τη δείχνουν οι οθόνες.
 export type ExternalReferenceRow = Pick<Tables<'external_reference_versions'>, 'id' | 'organization_id' | 'source_key' | 'authority' | 'title' | 'source_url' | 'version_label' | 'checked_at' | 'status' | 'metadata'>

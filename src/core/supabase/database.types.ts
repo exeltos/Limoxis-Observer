@@ -2621,6 +2621,7 @@ export type Database = {
         Row: {
           assignee_id: string | null
           control_id: string
+          created_at: string
           department_id: string
           frequency_config: Json | null
           id: string
@@ -2633,6 +2634,7 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           control_id: string
+          created_at?: string
           department_id: string
           frequency_config?: Json | null
           id?: string
@@ -2645,6 +2647,7 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           control_id?: string
+          created_at?: string
           department_id?: string
           frequency_config?: Json | null
           id?: string
@@ -3977,6 +3980,7 @@ export type Database = {
           organization_id: string
           patient_days_separate: boolean
           patient_days_tracked: boolean
+          is_kitchen: boolean
         }
         Insert: {
           code?: string | null
@@ -3988,6 +3992,7 @@ export type Database = {
           organization_id: string
           patient_days_separate?: boolean
           patient_days_tracked?: boolean
+          is_kitchen?: boolean
         }
         Update: {
           code?: string | null
@@ -3999,6 +4004,7 @@ export type Database = {
           organization_id?: string
           patient_days_separate?: boolean
           patient_days_tracked?: boolean
+          is_kitchen?: boolean
         }
         Relationships: [
           {
@@ -6583,6 +6589,105 @@ export type Database = {
           },
         ]
       }
+      kitchen_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string
+          organization_id: string
+          position: number
+          product_id: string | null
+          product_name: string
+          quantity: number | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          organization_id: string
+          position?: number
+          product_id?: string | null
+          product_name: string
+          quantity?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          organization_id?: string
+          position?: number
+          product_id?: string | null
+          product_name?: string
+          quantity?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      kitchen_orders: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expected_on: string | null
+          id: string
+          notes: string | null
+          ordered_on: string
+          organization_id: string
+          sent_at: string | null
+          sent_by_name: string | null
+          sent_via: string | null
+          source: string
+          status: string
+          supplier_id: string | null
+          supplier_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expected_on?: string | null
+          id?: string
+          notes?: string | null
+          ordered_on?: string
+          organization_id: string
+          sent_at?: string | null
+          sent_by_name?: string | null
+          sent_via?: string | null
+          source?: string
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expected_on?: string | null
+          id?: string
+          notes?: string | null
+          ordered_on?: string
+          organization_id?: string
+          sent_at?: string | null
+          sent_by_name?: string | null
+          sent_via?: string | null
+          source?: string
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kitchen_production_meals: {
         Row: {
           created_at: string
@@ -7150,6 +7255,7 @@ export type Database = {
           limit_status: string | null
           measured_temperature: number | null
           measured_temperature_text: string | null
+          order_id: string | null
           order_reference: string | null
           organization_id: string
           packaging_check: string | null
@@ -7182,6 +7288,7 @@ export type Database = {
           limit_status?: string | null
           measured_temperature?: number | null
           measured_temperature_text?: string | null
+          order_id?: string | null
           order_reference?: string | null
           organization_id: string
           packaging_check?: string | null
@@ -7214,6 +7321,7 @@ export type Database = {
           limit_status?: string | null
           measured_temperature?: number | null
           measured_temperature_text?: string | null
+          order_id?: string | null
           order_reference?: string | null
           organization_id?: string
           packaging_check?: string | null

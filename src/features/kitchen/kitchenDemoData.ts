@@ -7,7 +7,7 @@ import { demoResources } from '../quality/resources/resourceDemoData'
 import { seededRandom } from '../../core/data/demoSeed'
 import { DEFAULT_LIMITS } from './kitchenLimits'
 import { drillFindings, recallTrace } from './kitchenRecallModel'
-import type { KitchenDefrost, KitchenMenu, KitchenProduct, KitchenProduction, KitchenPureeing, KitchenReceipt, KitchenReceiptItem, KitchenState, KitchenStateInput, KitchenSupplier, KitchenThermal, KitchenUsage } from './kitchenTypes'
+import type { KitchenDefrost, KitchenOrder, KitchenMenu, KitchenProduct, KitchenProduction, KitchenPureeing, KitchenReceipt, KitchenReceiptItem, KitchenState, KitchenStateInput, KitchenSupplier, KitchenThermal, KitchenUsage } from './kitchenTypes'
 
 const day = (offset: number) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const at = (offset: number, time: string) => new Date(`${day(offset)}T${time}:00`).toISOString()
@@ -139,9 +139,25 @@ export function kitchenDemoState(): KitchenState {
     settings: { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: day(-340), haccpDocumentId: '', haccpTeam: `${MANAGER} (υπεύθυνη κουζίνας), Υπεύθυνος Ποιότητας, Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων`, recallDrillMonths: 12, notes: '' },
     limits: DEFAULT_LIMITS.map(item => ({ limitKey: item.limitKey, minValue: item.minValue, maxValue: item.maxValue, withinMinutes: item.withinMinutes, active: true })),
     steps: DEFAULT_HACCP_STEPS.map(step => ({ ...step })),
-    products, menus, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, suppliers,
+    products, menus, receipts, orders: demoOrders(receipts), writeoffs, productions, usage, thermal, pureeing, defrosting, suppliers,
   }
   return { ...state, recallDrills: recallDemoDrills(state) }
+}
+
+// Three orders of the Demo (owner, 27/11/2026, Κουζίνα › Παραγγελίες): one fully received (PAR-0005), one partly
+// (PAR-0006 brought the milk, not the yoghurt) and one still a draft. The receipts point back at their order.
+export function demoOrders(receipts: KitchenReceipt[]): KitchenOrder[] {
+  const line = (id: string, productId: string, quantity: number) => { const p = product(productId); return { id, productId, productName: p.name, quantity: String(quantity), unit: p.unit, notes: '' } }
+  const orders: KitchenOrder[] = [
+    { id: 'ko-1', code: 'PRG-0001', orderedOn: day(-3), supplierId: 'sup-demo-9', supplierName: 'Κρεατεμπορική Θεσσαλίας Α.Ε.', status: 'sent', sentVia: 'email', sentAt: `${day(-3)}T10:20:00`, sentByName: MANAGER, expectedOn: day(-2), notes: '', source: 'demo',
+      items: [line('koi-1', 'kp-1', 18), line('koi-2', 'kp-4', 14)] },
+    { id: 'ko-2', code: 'PRG-0002', orderedOn: day(-2), supplierId: 'sup-demo-7', supplierName: '', status: 'sent', sentVia: 'phone', sentAt: `${day(-2)}T12:05:00`, sentByName: MANAGER, expectedOn: day(-1), notes: '', source: 'demo',
+      items: [line('koi-3', 'kp-6', 30), line('koi-4', 'kp-7', 40)] },
+    { id: 'ko-3', code: 'PRG-0003', orderedOn: day(0), supplierId: 'sup-demo-8', supplierName: '', status: 'draft', sentVia: '', sentAt: '', sentByName: '', expectedOn: day(1), notes: 'Για τη Δευτέρα.', source: 'demo',
+      items: [line('koi-5', 'kp-8', 15), line('koi-6', 'kp-10', 40)] },
+  ]
+  for (const [receiptId, orderId] of [['kr-5', 'ko-1'], ['kr-6', 'ko-2']]) { const receipt = receipts.find(row => row.id === receiptId); if (receipt) receipt.orderId = orderId }
+  return orders
 }
 
 // The kitchen's history from January 2025 to last week (owner, 9/11/2026: the Demo shows the

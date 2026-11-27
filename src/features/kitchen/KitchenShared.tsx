@@ -11,7 +11,7 @@ import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { kitchenSince, loadKitchen, loadKitchenDay, loadKitchenReceipt, loadKitchenTrace, mergeKitchenState } from './kitchenService'
 import { limitFor, limitText, statusLabel, statusTone } from './kitchenLimits'
 import './kitchen.css'
-import type { KitchenDefrostDraft, KitchenHaccpStep, KitchenMenu, KitchenProduct, KitchenProduction, KitchenPureeing, KitchenReceipt, KitchenRecallDrill, KitchenScreenState, KitchenState, KitchenStockRow, KitchenThermal, KitchenUsage } from './kitchenTypes'
+import type { KitchenOrderInput, KitchenDefrostDraft, KitchenHaccpStep, KitchenMenu, KitchenProduct, KitchenProduction, KitchenPureeing, KitchenReceipt, KitchenRecallDrill, KitchenScreenState, KitchenState, KitchenStockRow, KitchenThermal, KitchenUsage } from './kitchenTypes'
 import type { RegistryColumn } from '../../design-system/RegistryTable'
 import type { EmptyStateAction } from '../../design-system/RegistryEmptyState'
 import type { IconType } from '../../design-system/types'
@@ -43,6 +43,7 @@ export interface KitchenFilterProps { filters: KitchenFilters; setFilters: (next
 // it edits (initial: a new… draft of kitchenModel or a saved row) or the batch it withdraws from.
 export type KitchenDialog =
   | { type: 'receipt'; initial: KitchenReceipt }
+  | { type: 'order'; initial: KitchenOrderInput | null }
   | { type: 'thermal'; initial: KitchenThermal }
   | { type: 'defrost'; initial: KitchenDefrostDraft }
   | { type: 'pureeing'; initial: KitchenPureeing }

@@ -29,12 +29,17 @@ const toLibraryTuple=(row: LibraryItemRow): LibraryTuple=>[
 // recommendations, NICU/PICU context); the check constraint allows these values.
 export const DEPARTMENT_TYPES=Object.freeze(['general','icu','nicu','picu'])
 export const departmentTypeValue=(value: string|null|undefined)=>value&&DEPARTMENT_TYPES.includes(value)?value:'general'
-const departmentTuple=(row: DepartmentLibraryRow): LibraryTuple=>[row.name,row.name,{id:row.id,system:false,locked:false,source:'Hospital',version:'local',code:row.code||null,departmentType:departmentTypeValue(row.department_type)}]
+// The kinds offered in the editor: the types above and «Κουζίνα (HACCP)», kept in departments.is_kitchen (its staff take the
+// kitchen's capabilities, 20261231642000) with department_type 'general'.
+export const DEPARTMENT_KINDS=Object.freeze([...DEPARTMENT_TYPES,'kitchen'])
+export const departmentKindValue=(value: string|null|undefined)=>value==='kitchen'?'kitchen':departmentTypeValue(value)
+const departmentColumns=(kind: string|null|undefined)=>({department_type:departmentTypeValue(kind),is_kitchen:kind==='kitchen'})
+const departmentTuple=(row: DepartmentLibraryRow): LibraryTuple=>[row.name,row.name,{id:row.id,system:false,locked:false,source:'Hospital',version:'local',code:row.code||null,departmentType:row.is_kitchen?'kitchen':departmentTypeValue(row.department_type)}]
 
 export async function loadManagementLibraries(organizationId: string): Promise<LibraryMap>{
   const supabase=assertCloud(organizationId)
   const [{data:departments,error:departmentError},{data:items,error:itemError}]=await Promise.all([
-    supabase.from('departments').select('id,name,code,is_active,department_type').eq('organization_id',organizationId).eq('is_active',true).order('name'),
+    supabase.from('departments').select('id,name,code,is_active,department_type,is_kitchen').eq('organization_id',organizationId).eq('is_active',true).order('name'),
     supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,category,metadata,source_authority,source_version,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name_el'),
   ])
   if(departmentError) throw departmentError
@@ -49,17 +54,17 @@ export async function createManagementLibraryItem(organizationId: string,library
   if(libraryKey==='departments'){
     const cleanName=String(nameEl||'').trim()
     if(!cleanName)throw new Error('Department name is required.')
-    const {data:existing,error:existingError}=await supabase.from('departments').select('id,name,code,is_active,department_type').eq('organization_id',organizationId).ilike('name',cleanName).maybeSingle()
+    const {data:existing,error:existingError}=await supabase.from('departments').select('id,name,code,is_active,department_type,is_kitchen').eq('organization_id',organizationId).ilike('name',cleanName).maybeSingle()
     if(existingError) throw existingError
     if(existing){
       if(existing.is_active===false){
-        const {data:reactivated,error:reactivateError}=await supabase.from('departments').update({is_active:true,name:cleanName,...(departmentType?{department_type:departmentTypeValue(departmentType)}:{})}).eq('organization_id',organizationId).eq('id',existing.id).select('id,name,code,department_type').single()
+        const {data:reactivated,error:reactivateError}=await supabase.from('departments').update({is_active:true,name:cleanName,...(departmentType?departmentColumns(departmentType):{})}).eq('organization_id',organizationId).eq('id',existing.id).select('id,name,code,department_type,is_kitchen').single()
         if(reactivateError)throw reactivateError
         return departmentTuple(reactivated)
       }
       return departmentTuple(existing)
     }
-    const {data,error}=await supabase.from('departments').insert({organization_id:organizationId,name:cleanName,department_type:departmentTypeValue(departmentType)}).select('id,name,code,department_type').single()
+    const {data,error}=await supabase.from('departments').insert({organization_id:organizationId,name:cleanName,...departmentColumns(departmentType)}).select('id,name,code,department_type,is_kitchen').single()
     if(error) throw error
     return departmentTuple(data)
   }
@@ -71,7 +76,7 @@ export async function createManagementLibraryItem(organizationId: string,library
 export async function updateManagementLibraryItem(organizationId: string,libraryKey: string,row: LibraryRow,{nameEl,nameEn,departmentType}: LibraryNames){
   const supabase=assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
   if(libraryKey==='departments'){
-    const {data,error}=await supabase.from('departments').update({name:nameEl,department_type:departmentTypeValue(departmentType??row?.[2]?.departmentType)}).eq('organization_id',organizationId).eq('id',id).select('id,name,code,department_type').single()
+    const {data,error}=await supabase.from('departments').update({name:nameEl,...departmentColumns(departmentType??row?.[2]?.departmentType)}).eq('organization_id',organizationId).eq('id',id).select('id,name,code,department_type,is_kitchen').single()
     if(error) throw error
     return departmentTuple(data)
   }

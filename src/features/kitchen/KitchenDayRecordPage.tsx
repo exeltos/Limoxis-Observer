@@ -43,7 +43,7 @@ const MEAL_HEADING = /^(πρωιν[οό]|μεσημεριαν[οό]|απογευ
 
 export function KitchenDayRecordPage() {
   const { productionId } = useParams()
-  const { goBack } = useContextualNavigation('/kitchen?tab=days')
+  const { goBack } = useContextualNavigation('/kitchen?tab=production&view=days')
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()

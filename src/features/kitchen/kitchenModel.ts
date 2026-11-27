@@ -302,23 +302,26 @@ export function receiptProblems(receipt: KitchenReceiptInput, language = 'el', s
   return problems
 }
 
-// Two levels of tabs: four groups, each with its own tabs. ?tab= keeps naming the inner tab
-// (old links still open the same place); a group name opens that group's first tab.
-// The five tabs of the kitchen. Storage and Safety hold more than one list: `view` says which.
-export const KITCHEN_TABS = ['today', 'days', 'storage', 'safety', 'haccp']
-export const KITCHEN_VIEWS: Record<string, string[]> = { storage: ['receipts', 'stock', 'products'], safety: ['verification', 'recall'] }
+// The six tabs of the kitchen in the order of its work (owner, 27/11/2026, structure A): receipts, storage, production,
+// verification and recall, the HACCP plan. Storage, Production and Safety hold more than one list: `view` says which (one
+// level of views, no switch inside a switch).
+export const KITCHEN_TABS = ['today', 'receipts', 'storage', 'production', 'safety', 'haccp']
+export const KITCHEN_VIEWS: Record<string, string[]> = { receipts: ['orders', 'receipts'], storage: ['stock', 'products'], production: ['days', 'defrosting', 'pureeing', 'menus'], safety: ['verification', 'recall'] }
 // The tabs of earlier versions (and the old group names) still open: each lands on its new tab and view.
 const OLD_KITCHEN_TABS: Record<string, { tab: string, view?: string }> = {
-  overview: { tab: 'today' },
-  plan: { tab: 'days' }, production: { tab: 'days' }, thermal: { tab: 'days' }, defrost: { tab: 'days' }, pureeing: { tab: 'days' },
-  receipts: { tab: 'storage', view: 'receipts' }, stock: { tab: 'storage', view: 'stock' }, usage: { tab: 'storage', view: 'stock' },
+  overview: { tab: 'today' }, orders: { tab: 'receipts', view: 'orders' },
+  days: { tab: 'production', view: 'days' }, plan: { tab: 'production', view: 'days' }, thermal: { tab: 'production', view: 'days' },
+  defrost: { tab: 'production', view: 'defrosting' }, defrosting: { tab: 'production', view: 'defrosting' }, pureeing: { tab: 'production', view: 'pureeing' }, menus: { tab: 'production', view: 'menus' },
+  stock: { tab: 'storage', view: 'stock' }, usage: { tab: 'storage', view: 'stock' }, products: { tab: 'storage', view: 'products' },
   verification: { tab: 'safety', view: 'verification' }, recall: { tab: 'safety', view: 'recall' },
 }
 export function resolveKitchenLocation(tab: string | null, view?: string | null) {
+  // «Storage › Receipts» of the previous version is the Receipts tab now.
+  if (tab === 'storage' && view === 'receipts') return { tab: 'receipts', view: 'receipts' }
   const target = tab && KITCHEN_TABS.includes(tab) ? { tab } as { tab: string, view?: string } : OLD_KITCHEN_TABS[tab as string] || { tab: 'today' }
   const views = KITCHEN_VIEWS[target.tab]
   return { tab: target.tab, view: views ? (views.includes(view as string) ? view : target.view || views[0]) : '' }
 }
 export const resolveKitchenTab = (value: string, view?: string | null) => resolveKitchenLocation(value, view).tab
-// The one primary button of the top bar for each tab (Export is always beside it).
-export const KITCHEN_PRIMARY_ACTION: Record<string, string | null> = { today: 'production', days: 'day', storage: 'receipt', safety: 'drill', haccp: null }
+// The one primary button of the top bar for each tab (Export is always beside it); the product list keeps its «+ Product».
+export const KITCHEN_PRIMARY_ACTION: Record<string, string | null> = { today: 'production', receipts: 'receipt', storage: null, production: 'day', safety: 'drill', haccp: null }
