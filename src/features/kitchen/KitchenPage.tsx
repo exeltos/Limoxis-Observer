@@ -66,6 +66,7 @@ export function KitchenPage() {
   const receiptsInView = state.receipts.filter(row => (!receiptFilters.from || row.receivedOn >= receiptFilters.from) && (!receiptFilters.to || row.receivedOn <= receiptFilters.to)).sort((a, b) => String(a.receivedOn).localeCompare(String(b.receivedOn)))
   const logFrom = receiptFilters.from || addDays(today, -30), logTo = receiptFilters.to || today
   const productRows = () => state.products.map(item => ({ ...item, supplierName: state.suppliers.find(s => s.id === item.supplierId)?.name || '', categoryLabel: categoryLabel(item.category, language) }))
+    .sort((a, b) => (a.supplierName ? 0 : 1) - (b.supplierName ? 0 : 1) || a.supplierName.localeCompare(b.supplierName, 'el') || a.name.localeCompare(b.name, 'el'))
   // A kitchen list: print, PDF and Excel from the same rows (rowsOf is read on click).
   const kitchenListMenu = (kind: string, rowsOf: () => KitchenListRow[], title: string) => registryMenu(() => kitchenListExport(kind, rowsOf(), language), { language, kind: en ? 'Kitchen' : 'Κουζίνα', title: `${en ? 'Kitchen' : 'Κουζίνα'} · ${title}`, onBlocked: blocked })
   const dayDocument = todayProduction ? reportExports(() => dailyHaccpDocument(state, todayProduction, { language }), { word: true, onBlocked: blocked }) : {}
