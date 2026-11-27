@@ -93,7 +93,36 @@ export interface KitchenProduct extends KitchenSaved {
 export interface KitchenMenu extends KitchenSaved { name: string, weekday: KitchenNumber, menuText: string, active: boolean | null, notes: string, source?: KitchenSource }
 
 // A kitchen supplier (from the quality office's suppliers).
-export interface KitchenSupplier { id: string, name: string, category: string | null, status: string | null }
+export interface KitchenSupplier { id: string, name: string, category: string | null, status: string | null, email?: string | null, phone?: string | null }
+
+// --- Orders --------------------------------------------------------------------------------
+
+// A product line of an order (kitchen_order_items).
+export interface KitchenOrderItem extends KitchenSaved {
+  productId: string
+  productName: string
+  quantity: KitchenNumber
+  unit: string
+  notes: string
+  orderId?: string
+  position?: KitchenNumber
+}
+// An order to a supplier (kitchen_orders): draft, sent (by email or phone) or cancelled; partly or fully received comes
+// from its receipts (orderProgress).
+export interface KitchenOrder extends KitchenSaved {
+  code: string
+  orderedOn: string
+  supplierId: string
+  supplierName: string
+  status: string
+  sentVia: string
+  sentAt: string
+  sentByName: string
+  expectedOn: string
+  notes: string
+  source: KitchenSource
+  items: KitchenOrderItem[]
+}
 
 // --- Receipts and stock ---------------------------------------------------------------------
 
@@ -131,6 +160,8 @@ export interface KitchenReceipt extends KitchenSaved, KitchenReceiptChecks {
   receivedOn: string
   receivedTime: string
   orderReference: string
+  // The order this receipt delivers (kitchen_receipts.order_id).
+  orderId?: string
   receiverName: string
   temperatureClass: string
   measuredTemperature: KitchenNumber
@@ -431,6 +462,7 @@ export interface KitchenState {
   products: KitchenProduct[]
   menus: KitchenMenu[]
   receipts: KitchenReceipt[]
+  orders: KitchenOrder[]
   writeoffs: KitchenWriteoff[]
   productions: KitchenProduction[]
   usage: KitchenUsage[]
@@ -444,7 +476,7 @@ export interface KitchenState {
   outOfLimitsTotal?: number | null
 }
 // The lists of the state.
-export type KitchenListKey = 'limits' | 'steps' | 'products' | 'menus' | 'receipts' | 'writeoffs' | 'productions' | 'usage' | 'thermal' | 'pureeing' | 'defrosting' | 'suppliers' | 'recallDrills'
+export type KitchenListKey = 'limits' | 'steps' | 'products' | 'menus' | 'receipts' | 'orders' | 'writeoffs' | 'productions' | 'usage' | 'thermal' | 'pureeing' | 'defrosting' | 'suppliers' | 'recallDrills'
 // The lists the demo keeps each table's rows in.
 export type KitchenTableList = Exclude<KitchenListKey, 'limits' | 'suppliers'>
 
@@ -452,6 +484,7 @@ export type KitchenTableList = Exclude<KitchenListKey, 'limits' | 'suppliers'>
 // a production day, a heat treatment and a pureeing also with their day) and any other field.
 export type KitchenRowInput<T extends { id: string }> = Partial<T> & Pick<T, 'id'>
 export interface KitchenReceiptInput extends Partial<Omit<KitchenReceipt, 'items'>> { items?: KitchenRowInput<KitchenReceiptItem>[] }
+export interface KitchenOrderInput extends Partial<Omit<KitchenOrder, 'items'>> { items?: Partial<KitchenOrderItem>[] }
 export interface KitchenProductionInput extends Partial<Omit<KitchenProduction, 'meals'>> { meals?: Partial<KitchenMeal>[] }
 export interface KitchenStateInput {
   settings?: Partial<KitchenSettings> | null
@@ -460,6 +493,7 @@ export interface KitchenStateInput {
   products?: KitchenRowInput<KitchenProduct>[]
   menus?: KitchenRowInput<KitchenMenu>[]
   receipts?: (KitchenReceiptInput & Pick<KitchenReceipt, 'id' | 'receivedOn'>)[]
+  orders?: (KitchenOrderInput & Pick<KitchenOrder, 'id'>)[]
   writeoffs?: KitchenRowInput<KitchenWriteoff>[]
   productions?: (KitchenProductionInput & Pick<KitchenProduction, 'id' | 'productionDate'>)[]
   usage?: KitchenRowInput<KitchenUsage>[]
@@ -497,6 +531,8 @@ export interface KitchenEntries {
   kitchen_menus: KitchenMenu
   kitchen_receipts: KitchenReceipt
   kitchen_receipt_items: KitchenReceiptItem
+  kitchen_orders: KitchenOrder
+  kitchen_order_items: KitchenOrderItem
   kitchen_stock_writeoffs: KitchenWriteoff
   kitchen_productions: KitchenProduction
   kitchen_production_meals: KitchenMeal
@@ -509,4 +545,4 @@ export interface KitchenEntries {
 export type KitchenTable = keyof KitchenEntries
 // A row of a kitchen table (database.types).
 export type KitchenDbRow<T extends KitchenTable> = Tables<T>
-export type KitchenSupplierRow = Pick<Tables<'quality_suppliers'>, 'id' | 'name' | 'category' | 'status'>
+export type KitchenSupplierRow = Pick<Tables<'quality_suppliers'>, 'id' | 'name' | 'category' | 'status' | 'email' | 'phone'>

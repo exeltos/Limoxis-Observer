@@ -59,3 +59,13 @@
 .kitchen-safety{display:flex;flex-direction:column;gap:18px;padding:12px 18px;overflow:auto}
 .kitchen-safety-section{display:flex;flex-direction:column;min-width:0}
 .kitchen-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+/* Παραγγελία: τα προϊόντα του προμηθευτή με το απόθεμα και την ποσότητα (KitchenOrders.tsx). */
+.kitchen-order-search{width:min(280px,100%)}
+.kitchen-order-lines{max-height:min(46vh,460px);overflow:auto;border:1px solid var(--lo-color-border);border-radius:10px}
+.kitchen-order-table{width:100%;border-collapse:collapse;font-size:13px}
+.kitchen-order-table th{position:sticky;top:0;z-index:1;text-align:left;padding:8px 10px;background:var(--lo-color-surface-muted);color:var(--lo-color-muted);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+.kitchen-order-table td{padding:6px 10px;border-top:1px solid var(--lo-color-border);vertical-align:middle}
+.kitchen-order-table td small{display:block;color:var(--lo-color-muted)}
+.kitchen-order-table td .lo-status-badge,.kitchen-order-table td [class*=badge]{margin-left:6px}
+.kitchen-order-table tr.is-ordered td{background:var(--lo-color-primary-soft)}
+.kitchen-order-qty{width:96px;text-align:right}

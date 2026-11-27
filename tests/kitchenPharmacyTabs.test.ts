@@ -7,18 +7,18 @@ const read = path => readSource(new URL(`../${path}`, import.meta.url))
 describe('kitchen: six tabs in the order of its work (owner, 27/11/2026, structure A)', () => {
   it('has Today, Receipts, Storage, Production, Verification & recall and the HACCP plan, one level of views', () => {
     expect(KITCHEN_TABS).toEqual(['today', 'receipts', 'storage', 'production', 'safety', 'haccp'])
-    expect(KITCHEN_VIEWS).toEqual({ storage: ['stock', 'products'], production: ['days', 'defrosting', 'pureeing', 'menus'], safety: ['verification', 'recall'] })
+    expect(KITCHEN_VIEWS).toEqual({ receipts: ['orders', 'receipts'], storage: ['stock', 'products'], production: ['days', 'defrosting', 'pureeing', 'menus'], safety: ['verification', 'recall'] })
   })
 
   it('opens every old ?tab= address on its new tab and view', () => {
     const expected = {
       overview: ['today', ''], plan: ['production', 'days'], days: ['production', 'days'], thermal: ['production', 'days'], defrost: ['production', 'defrosting'], pureeing: ['production', 'pureeing'],
-      receipts: ['receipts', ''], stock: ['storage', 'stock'], usage: ['storage', 'stock'], products: ['storage', 'products'], menus: ['production', 'menus'],
+      receipts: ['receipts', 'orders'], orders: ['receipts', 'orders'], stock: ['storage', 'stock'], usage: ['storage', 'stock'], products: ['storage', 'products'], menus: ['production', 'menus'],
       verification: ['safety', 'verification'], recall: ['safety', 'recall'], haccp: ['haccp', ''],
       production: ['production', 'days'], storage: ['storage', 'stock'], safety: ['safety', 'verification'], today: ['today', ''],
     }
     for (const [old, [tab, view]] of Object.entries(expected)) expect(resolveKitchenLocation(old)).toEqual({ tab, view })
-    expect(resolveKitchenLocation('storage', 'receipts')).toEqual({ tab: 'receipts', view: '' })
+    expect(resolveKitchenLocation('storage', 'receipts')).toEqual({ tab: 'receipts', view: 'receipts' })
     expect(resolveKitchenTab('recall')).toBe('safety')
     expect(resolveKitchenLocation('nope')).toEqual({ tab: 'today', view: '' })
     expect(resolveKitchenLocation(null)).toEqual({ tab: 'today', view: '' })
@@ -29,7 +29,8 @@ describe('kitchen: six tabs in the order of its work (owner, 27/11/2026, structu
     expect(resolveKitchenLocation('production', 'pureeing')).toEqual({ tab: 'production', view: 'pureeing' })
     expect(resolveKitchenLocation('safety', 'recall')).toEqual({ tab: 'safety', view: 'recall' })
     expect(resolveKitchenLocation('storage', 'recall').view).toBe('stock')
-    expect(resolveKitchenLocation('receipts', 'stock').view).toBe('')
+    expect(resolveKitchenLocation('receipts', 'stock').view).toBe('orders')
+    expect(resolveKitchenLocation('haccp', 'stock').view).toBe('')
   })
 
   it('has one primary button per tab beside Export, and none on the HACCP plan', () => {
@@ -38,7 +39,7 @@ describe('kitchen: six tabs in the order of its work (owner, 27/11/2026, structu
     expect(page).toContain('KITCHEN_PRIMARY_ACTION[tab]')
     // The top bar is Export plus that one button; no other page-level action buttons.
     expect(page).toContain('{primaryButton}')
-    expect((page.match(/<Button onClick=\{\(\) => \(?(?:summary!?\.production|setDialog|setRecall)/g) || []).length).toBe(4)
+    expect((page.match(/<Button onClick=\{\(\) => \(?(?:summary!?\.production|setDialog|setRecall)/g) || []).length).toBe(5)
   })
 
   it('draws one row of tabs, the cards only on Today and the storage selector as a mode switch', () => {

@@ -13,7 +13,7 @@ import { selectInChunks } from '../../core/data/inChunks'
 import { kitchenDemoState } from './kitchenDemoData'
 import { addDays, batchProblem, combine, normalize, stockRows, todayKey, withStatuses } from './kitchenModel'
 import { defrostStatus, needsCorrectiveAction, pureeingStatus, receiptStatus, resolveLimits, thermalStatuses } from './kitchenLimits'
-import type { KitchenBatchBalanceRow, KitchenDayEntry, KitchenDbRow, KitchenDefrostDraft, KitchenEntries, KitchenLimit, KitchenProductionInput, KitchenRecallDrill, KitchenReceiptInput, KitchenSettings, KitchenState, KitchenSupplierRow, KitchenTable, KitchenTableList, KitchenTraceSnapshot } from './kitchenTypes'
+import type { KitchenOrder, KitchenOrderInput, KitchenReceipt, KitchenBatchBalanceRow, KitchenDayEntry, KitchenDbRow, KitchenDefrostDraft, KitchenEntries, KitchenLimit, KitchenProductionInput, KitchenRecallDrill, KitchenReceiptInput, KitchenSettings, KitchenState, KitchenSupplierRow, KitchenTable, KitchenTableList, KitchenTraceSnapshot } from './kitchenTypes'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // The kitchen's tables are named by the caller (`table`): a client without the database types, as the
@@ -45,10 +45,12 @@ const COLUMNS: Record<KitchenTable, Record<string, [string, ColumnKind]>> = {
   kitchen_haccp_steps: { position: ['position', 'n'], stepKey: ['step_key', 't'], name: ['name', 't'], hazardBiological: ['hazard_biological', 'b'], hazardChemical: ['hazard_chemical', 'b'], hazardPhysical: ['hazard_physical', 'b'], hazardAllergen: ['hazard_allergen', 'b'], hazards: ['hazards', 't'], isCcp: ['is_ccp', 'b'], controlMeasure: ['control_measure', 't'], limitKey: ['limit_key', 't'], monitoring: ['monitoring', 't'], frequency: ['frequency', 't'], correctiveAction: ['corrective_action', 't'], verification: ['verification', 't'], records: ['records', 't'], responsible: ['responsible', 't'], active: ['active', 'b'] },
   kitchen_products: { name: ['name', 't'], category: ['category', 't'], storage: ['storage', 't'], unit: ['unit', 't'], supplierId: ['supplier_id', 'u'], supplierCode: ['supplier_code', 't'], lowStockQuantity: ['low_stock_quantity', 'n'], active: ['active', 'b'], notes: ['notes', 't'], source: ['source', 't'] },
   kitchen_menus: { name: ['name', 't'], weekday: ['weekday', 'n'], menuText: ['menu_text', 't'], active: ['active', 'b'], notes: ['notes', 't'], source: ['source', 't'] },
-  kitchen_receipts: { code: ['code', 't'], supplierId: ['supplier_id', 'u'], supplierName: ['supplier_name', 't'], receivedOn: ['received_on', 'd'], receivedTime: ['received_time', 'd'], orderReference: ['order_reference', 't'], receiverEmployeeId: ['receiver_employee_id', 'u'], receiverName: ['receiver_name', 't'],
+  kitchen_receipts: { code: ['code', 't'], supplierId: ['supplier_id', 'u'], supplierName: ['supplier_name', 't'], receivedOn: ['received_on', 'd'], receivedTime: ['received_time', 'd'], orderReference: ['order_reference', 't'], orderId: ['order_id', 'u'], receiverEmployeeId: ['receiver_employee_id', 'u'], receiverName: ['receiver_name', 't'],
     temperatureCheck: ['temperature_check', 't'], packagingCheck: ['packaging_check', 't'], expiryCheck: ['expiry_check', 't'], vehicleCheck: ['vehicle_check', 't'], codingCheck: ['coding_check', 't'], temperatureClass: ['temperature_class', 't'], measuredTemperature: ['measured_temperature', 'n'], measuredTemperatureText: ['measured_temperature_text', 't'], temperatureUnparsed: ['temperature_unparsed', 'b'],
     accepted: ['accepted', 'b'], status: ['status', 't'], qualityNotes: ['quality_notes', 't'], correctiveAction: ['corrective_action', 't'], source: ['source', 't'] },
   kitchen_receipt_items: { position: ['position', 'n'], productId: ['product_id', 'u'], productName: ['product_name', 't'], batchCode: ['batch_code', 't'], lotLabel: ['lot_label', 't'], expiryOn: ['expiry_on', 'd'], quantity: ['quantity', 'n'], unit: ['unit', 't'], storage: ['storage', 't'], temperature: ['temperature', 'n'], temperatureText: ['temperature_text', 't'], temperatureUnparsed: ['temperature_unparsed', 'b'], accepted: ['accepted', 'b'], rejectionReason: ['rejection_reason', 't'], notes: ['notes', 't'] },
+  kitchen_orders: { code: ['code', 't'], orderedOn: ['ordered_on', 'd'], supplierId: ['supplier_id', 'u'], supplierName: ['supplier_name', 't'], status: ['status', 't'], sentVia: ['sent_via', 't'], sentAt: ['sent_at', 'd'], sentByName: ['sent_by_name', 't'], expectedOn: ['expected_on', 'd'], notes: ['notes', 't'], source: ['source', 't'] },
+  kitchen_order_items: { position: ['position', 'n'], productId: ['product_id', 'u'], productName: ['product_name', 't'], quantity: ['quantity', 'n'], unit: ['unit', 't'], notes: ['notes', 't'] },
   kitchen_stock_writeoffs: { receiptItemId: ['receipt_item_id', 'u'], writtenOffOn: ['written_off_on', 'd'], quantity: ['quantity', 'n'], reason: ['reason', 't'], notes: ['notes', 't'], recordedByEmployeeId: ['recorded_by_employee_id', 'u'], recordedByName: ['recorded_by_name', 't'] },
   kitchen_productions: { productionDate: ['production_date', 'd'], menuId: ['menu_id', 'u'], menuText: ['menu_text', 't'], notes: ['notes', 't'], disinfectionVegetables: ['disinfection_vegetables', 'b'], disinfectionFruit: ['disinfection_fruit', 'b'], disinfectionAgent: ['disinfection_agent', 't'], disinfectionConcentrationPpm: ['disinfection_concentration_ppm', 'n'], disinfectionMinutes: ['disinfection_minutes', 'n'], disinfectionNotes: ['disinfection_notes', 't'],
     recordedByEmployeeId: ['recorded_by_employee_id', 'u'], recordedByName: ['recorded_by_name', 't'], source: ['source', 't'] },
@@ -114,7 +116,14 @@ const byOrg = <T extends KitchenTable>(table: T, organizationId: string | null |
 
 function local(): KitchenState {
   const saved = loadSnapshot(LOCAL_KEY, null)
-  if (saved && Array.isArray(saved.receipts)) return Array.isArray(saved.recallDrills) ? saved : { ...saved, recallDrills: isEmptyPreview() ? [] : kitchenDemoState().recallDrills }
+  if (saved && Array.isArray(saved.receipts)) {
+    // A demo kept from before a list existed takes the seed's (recall drills, orders), the receipts' links to their order too.
+    if (Array.isArray(saved.recallDrills) && Array.isArray(saved.orders)) return saved
+    const seed = isEmptyPreview() ? null : kitchenDemoState()
+    const links = new Map((seed?.receipts || []).filter(row => row.orderId).map(row => [row.id, row.orderId]))
+    return { ...saved, recallDrills: Array.isArray(saved.recallDrills) ? saved.recallDrills : seed?.recallDrills || [], orders: Array.isArray(saved.orders) ? saved.orders : seed?.orders || [],
+      receipts: Array.isArray(saved.orders) ? saved.receipts : saved.receipts.map((row: KitchenReceipt) => (links.has(row.id) ? { ...row, orderId: links.get(row.id) } : row)) }
+  }
   const seed = kitchenDemoState()
   // Empty-hospital preview: the kitchen's settings, limits and HACCP steps, no records.
   const state = isEmptyPreview() ? Object.fromEntries(Object.entries(seed).map(([key, value]) => [key, Array.isArray(value) && !['limits', 'steps'].includes(key) ? [] : value])) as KitchenState : seed
@@ -148,7 +157,7 @@ const CONFIG_TABLES = new Set(['kitchen_settings', 'kitchen_limits', 'kitchen_ha
 const configCache = new Map()
 export function clearKitchenConfigCache(organizationId: string | null | undefined) { if (organizationId === undefined) configCache.clear(); else configCache.delete(organizationId) }
 const DEFAULT_SETTINGS: KitchenSettings = { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: '', haccpDocumentId: '', haccpTeam: '', recallDrillMonths: 12, notes: '' }
-const EMPTY_STATE: KitchenState = { settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [], recallDrills: [] }
+const EMPTY_STATE: KitchenState = { settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], orders: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [], recallDrills: [] }
 
 function loadKitchenConfig(organizationId: string | null | undefined, now = Date.now()) {
   const hit = configCache.get(organizationId)
@@ -156,14 +165,14 @@ function loadKitchenConfig(organizationId: string | null | undefined, now = Date
   const promise = Promise.all([
     supabase.from('kitchen_settings').select('*').eq('organization_id', organizationId as string).maybeSingle().then(must),
     byOrg('kitchen_limits', organizationId, 'limit_key'), byOrg('kitchen_haccp_steps', organizationId, 'position'), byOrg('kitchen_products', organizationId, 'name'), byOrg('kitchen_menus', organizationId, 'weekday'),
-    selectAll<KitchenSupplierRow>(() => supabase.from('quality_suppliers').select('id,name,category,status').eq('organization_id', organizationId as string).order('name').order('id')).catch(() => []),
+    selectAll<KitchenSupplierRow>(() => supabase.from('quality_suppliers').select('id,name,category,status,email,phone').eq('organization_id', organizationId as string).order('name').order('id')).catch(() => []),
   ]).then(([settings, limits, steps, products, menus, suppliers]) => ({
     settings: settings ? fromRow('kitchen_settings', settings) : { ...DEFAULT_SETTINGS },
     limits: resolveLimits(limits.map(row => fromRow('kitchen_limits', row))),
     steps: steps.map(row => fromRow('kitchen_haccp_steps', row)),
     products: products.map(row => fromRow('kitchen_products', row)),
     menus: menus.map(row => fromRow('kitchen_menus', row)),
-    suppliers: suppliers.map(row => ({ id: row.id, name: row.name, category: row.category, status: row.status })),
+    suppliers: suppliers.map(row => ({ id: row.id, name: row.name, category: row.category, status: row.status, email: row.email, phone: row.phone })),
   }))
   configCache.set(organizationId, { promise, expires: now + KITCHEN_CONFIG_TTL_MS })
   promise.catch(() => { if (configCache.get(organizationId)?.promise === promise) configCache.delete(organizationId) })
@@ -194,6 +203,13 @@ async function loadReceiptRows(organizationId: string | null | undefined, ids: u
   const items = await rowsIn('kitchen_receipt_items', organizationId, 'receipt_id', receipts.map(row => row.id), [['position'], ['id']])
   return receiptsWithItems(receipts, items)
 }
+// Every order of the organization with its products (newest first).
+async function loadOrderRows(organizationId: string | null | undefined) {
+  const orders = await byOrg('kitchen_orders', organizationId, 'ordered_on')
+  const items = await rowsIn('kitchen_order_items', organizationId, 'order_id', orders.map(row => row.id), [['position'], ['id']])
+  const itemsBy = group(items.map(row => ({ ...fromRow('kitchen_order_items', row), orderId: row.order_id })), 'orderId')
+  return orders.map(row => ({ ...fromRow('kitchen_orders', row), items: itemsBy.get(row.id) || [] })).sort((a, b) => String(b.orderedOn).localeCompare(String(a.orderedOn)) || String(b.code).localeCompare(String(a.code)))
+}
 // Production days by id with their meals.
 async function loadProductionRows(organizationId: string | null | undefined, ids: unknown[]) {
   const productions = await rowsIn('kitchen_productions', organizationId, 'id', ids, [['production_date'], ['id']])
@@ -207,7 +223,7 @@ const outCount = (table: string, organizationId: string | null | undefined) => s
 export async function loadKitchen(organizationId: string | null | undefined, { since = kitchenSince() }: { since?: string | null } = {}) {
   if (isLocal()) return withStatuses(local())
   if (!organizationId) return withStatuses({ ...EMPTY_STATE })
-  const [config, balances, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, recallDrills, outOfLimitsTotal] = await Promise.all([
+  const [config, balances, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, recallDrills, orders, outOfLimitsTotal] = await Promise.all([
     loadKitchenConfig(organizationId),
     selectAll<KitchenBatchBalanceRow>(() => supabase.rpc('kitchen_batch_balances', { p_organization_id: organizationId as string, p_since: since || null }).order('receipt_item_id')),
     fromSince('kitchen_receipts', organizationId, 'received_on', since),
@@ -221,6 +237,8 @@ export async function loadKitchen(organizationId: string | null | undefined, { s
       return (since ? query.or(`started_at.gte.${since},ended_at.gte.${since}`) : query).order('started_at').order('id')
     }),
     byOrg('kitchen_recall_drills', organizationId, 'drill_date').catch(() => []),
+    // The orders (few: one per supplier delivery), all of them, with their products.
+    loadOrderRows(organizationId).catch(() => []),
     // The overview counts the entries out of limits in the whole history.
     since ? Promise.all(['kitchen_receipts', 'kitchen_thermal_processes', 'kitchen_defrosting', 'kitchen_pureeing'].map(table => outCount(table, organizationId))).then(counts => counts.reduce((sum, n) => sum + n, 0)).catch(() => null) : Promise.resolve(null),
   ])
@@ -242,6 +260,7 @@ export async function loadKitchen(organizationId: string | null | undefined, { s
     pureeing: pureeing.map(row => fromRow('kitchen_pureeing', row)),
     defrosting: defrosting.map(row => fromRow('kitchen_defrosting', row)),
     recallDrills: recallDrills.map(row => ({ ...fromRow('kitchen_recall_drills', row), stockCounts: (row.trace_snapshot as KitchenTraceSnapshot | null)?.stockCounts || {} })),
+    orders,
     balances: balancesOf(balances),
     since: since || null,
     ...(outOfLimitsTotal == null ? {} : { outOfLimitsTotal }),
@@ -398,6 +417,23 @@ export async function saveReceipt(organizationId: string | null | undefined, rec
   return saved.id
 }
 
+// An order with its products. Returns the saved order (with its code).
+export async function saveOrder(organizationId: string | null | undefined, order: KitchenOrderInput) {
+  if (isLocal()) {
+    const state = local(), lists: LocalLists = state
+    const list = state.orders || []
+    const code = order.code || `PRG-${String(Math.max(0, ...list.map(item => Number(String(item.code).match(/^PRG-(\d+)$/)?.[1]) || 0)) + 1).padStart(4, '0')}`
+    const items = (order.items || []).map(item => ({ ...item, id: item.id || localId('koi') }))
+    const next = { ...order, id: order.id || localId('ko'), code, items, source: order.source || 'app', sentAt: order.status === 'sent' && !order.sentAt ? new Date().toISOString() : order.sentAt || '' }
+    lists.orders = upsertIn<LocalRow>(list, next)
+    saveLocal(state)
+    return next as KitchenOrder
+  }
+  const saved = await writeRow('kitchen_orders', organizationId, { ...order, code: order.code || '' }, order.code ? {} : { code: '' })
+  await syncChildren('kitchen_order_items', organizationId, 'order_id', saved.id, order.items || [])
+  return { ...fromRow('kitchen_orders', saved), items: order.items || [] } as KitchenOrder
+}
+
 export async function removeEntry(organizationId: string | null | undefined, table: string, id: string) {
   if (isLocal()) {
     const state = local(), lists: LocalLists = state
@@ -412,7 +448,7 @@ export async function removeEntry(organizationId: string | null | undefined, tab
 }
 // Who signs off: the signed-in user and their employee record.
 type KitchenActor = { id?: string | null, name?: string, employeeId?: string }
-const LOCAL_FIELD: Record<string, KitchenTableList> = { kitchen_receipts: 'receipts', kitchen_material_usage: 'usage', kitchen_thermal_processes: 'thermal', kitchen_pureeing: 'pureeing', kitchen_defrosting: 'defrosting', kitchen_productions: 'productions', kitchen_products: 'products', kitchen_menus: 'menus', kitchen_haccp_steps: 'steps', kitchen_stock_writeoffs: 'writeoffs', kitchen_recall_drills: 'recallDrills' }
+const LOCAL_FIELD: Record<string, KitchenTableList> = { kitchen_receipts: 'receipts', kitchen_orders: 'orders', kitchen_material_usage: 'usage', kitchen_thermal_processes: 'thermal', kitchen_pureeing: 'pureeing', kitchen_defrosting: 'defrosting', kitchen_productions: 'productions', kitchen_products: 'products', kitchen_menus: 'menus', kitchen_haccp_steps: 'steps', kitchen_stock_writeoffs: 'writeoffs', kitchen_recall_drills: 'recallDrills' }
 
 const locked = (state: KitchenState, productionId: string | undefined) => Boolean(productionId && state.productions.find(item => item.id === productionId)?.verifiedAt)
 

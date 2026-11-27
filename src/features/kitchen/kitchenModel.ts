@@ -306,10 +306,10 @@ export function receiptProblems(receipt: KitchenReceiptInput, language = 'el', s
 // verification and recall, the HACCP plan. Storage, Production and Safety hold more than one list: `view` says which (one
 // level of views, no switch inside a switch).
 export const KITCHEN_TABS = ['today', 'receipts', 'storage', 'production', 'safety', 'haccp']
-export const KITCHEN_VIEWS: Record<string, string[]> = { storage: ['stock', 'products'], production: ['days', 'defrosting', 'pureeing', 'menus'], safety: ['verification', 'recall'] }
+export const KITCHEN_VIEWS: Record<string, string[]> = { receipts: ['orders', 'receipts'], storage: ['stock', 'products'], production: ['days', 'defrosting', 'pureeing', 'menus'], safety: ['verification', 'recall'] }
 // The tabs of earlier versions (and the old group names) still open: each lands on its new tab and view.
 const OLD_KITCHEN_TABS: Record<string, { tab: string, view?: string }> = {
-  overview: { tab: 'today' },
+  overview: { tab: 'today' }, orders: { tab: 'receipts', view: 'orders' },
   days: { tab: 'production', view: 'days' }, plan: { tab: 'production', view: 'days' }, thermal: { tab: 'production', view: 'days' },
   defrost: { tab: 'production', view: 'defrosting' }, defrosting: { tab: 'production', view: 'defrosting' }, pureeing: { tab: 'production', view: 'pureeing' }, menus: { tab: 'production', view: 'menus' },
   stock: { tab: 'storage', view: 'stock' }, usage: { tab: 'storage', view: 'stock' }, products: { tab: 'storage', view: 'products' },
@@ -317,7 +317,7 @@ const OLD_KITCHEN_TABS: Record<string, { tab: string, view?: string }> = {
 }
 export function resolveKitchenLocation(tab: string | null, view?: string | null) {
   // «Storage › Receipts» of the previous version is the Receipts tab now.
-  if (tab === 'storage' && view === 'receipts') return { tab: 'receipts', view: '' }
+  if (tab === 'storage' && view === 'receipts') return { tab: 'receipts', view: 'receipts' }
   const target = tab && KITCHEN_TABS.includes(tab) ? { tab } as { tab: string, view?: string } : OLD_KITCHEN_TABS[tab as string] || { tab: 'today' }
   const views = KITCHEN_VIEWS[target.tab]
   return { tab: target.tab, view: views ? (views.includes(view as string) ? view : target.view || views[0]) : '' }

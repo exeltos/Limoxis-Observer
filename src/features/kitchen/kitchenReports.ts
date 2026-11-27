@@ -4,7 +4,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { limitFor, limitText, statusLabel } from './kitchenLimits'
 import { RECEIPT_CHECK_FIELDS, checkLabel, dayRecords, defrostMethodLabel, dietLabel, fmtQty, fmtTemp, mealLabel, pureeMethodLabel, receiptResultLabel, storageLabel, unitLabel, weekdayLabel, weekdayOf, writeoffReasonLabel } from './kitchenModel'
 import { BALANCE_TOLERANCE, drillSubject, elapsedMinutes, fmtDuration, recallResultLabel, recallScenarioLabel, withinTarget } from './kitchenRecallModel'
-import type { KitchenBatchTrace, KitchenListRow, KitchenProductionInput, KitchenRecallDrill, KitchenRecallTrace, KitchenReceiptInput, KitchenResolvedStateInput } from './kitchenTypes'
+import type { KitchenBatchTrace, KitchenListRow, KitchenOrderInput, KitchenProductionInput, KitchenRecallDrill, KitchenRecallTrace, KitchenReceiptInput, KitchenResolvedStateInput } from './kitchenTypes'
 import type { ReportDoc, ReportFact } from '../../core/export/reportDocument'
 
 const day = (value: unknown) => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
@@ -79,6 +79,24 @@ export function receiptsLogDocument(receipts: readonly KitchenReceiptInput[], { 
     sections: [{ title: L('Παραλαβές', 'Receipts'), table: { columns: [L('Ημερομηνία', 'Date'), L('Κωδικός', 'Code'), L('Προμηθευτής', 'Supplier'), L('Προϊόν', 'Product'), L('Παρτίδα', 'Batch'), L('Λήξη', 'Expiry'), { text: L('Ποσότητα', 'Quantity'), align: 'right' }, L('Θερμοκρασία', 'Temperature'), L('Προϊόν δεκτό', 'Product accepted'), L('Αποτέλεσμα', 'Result')], rows, empty: L('Καμία παραλαβή στην περίοδο.', 'No receipts in the period.') } }],
     signatures: [L('Υπεύθυνος κουζίνας', 'Kitchen manager'), L('Υπεύθυνος Ποιότητας', 'Quality manager')],
     filename: `${en ? 'receipts' : 'paralaves'}_${from}_${to}`,
+  }
+}
+
+// An order to a supplier (Κουζίνα › Παραγγελίες): what is ordered and, once deliveries came, what each brought.
+export function orderDocument(order: KitchenOrderInput, { language = 'el', stageLabel = '', supplierContact = '', received = [] as { ordered: number, received: number, remaining: number }[] } = {}): ReportDoc {
+  const en = language === 'en'
+  const L = (el: string, enText: string) => (en ? enText : el)
+  const withProgress = received.length === (order.items || []).length && received.some(row => row.received > 0)
+  return {
+    language, kind: L('Παραγγελία κουζίνας', 'Kitchen order'), title: order.supplierName || '—', code: order.code || '',
+    meta: [[L('Ημερομηνία', 'Date'), day(order.orderedOn)], [L('Παράδοση', 'Delivery'), day(order.expectedOn)], [L('Κατάσταση', 'Status'), stageLabel || '—'], ...(supplierContact ? [[L('Επικοινωνία', 'Contact'), supplierContact] as [string, string]] : [])],
+    sections: [{ title: L('Προϊόντα', 'Products'), table: {
+      columns: [L('#', '#'), L('Προϊόν', 'Product'), { text: L('Ποσότητα', 'Quantity'), align: 'right' }, L('Μονάδα', 'Unit'), ...(withProgress ? [{ text: L('Παραλήφθηκαν', 'Received'), align: 'right' as const }, { text: L('Υπόλοιπο', 'Remaining'), align: 'right' as const }] : []), L('Σημειώσεις', 'Notes')],
+      rows: (order.items || []).map((line, index) => [String(index + 1), line.productName || '—', { text: fmtQty(line.quantity, language), align: 'right' }, unitLabel(line.unit, language),
+        ...(withProgress ? [{ text: fmtQty(received[index].received, language), align: 'right' }, { text: fmtQty(received[index].remaining, language), align: 'right', className: received[index].remaining > 0 ? 'rd-bad' : '' }] : []), line.notes || '']),
+    } }, ...(order.notes ? [{ title: L('Σημειώσεις', 'Notes'), text: order.notes }] : [])],
+    signatures: [L('Υπεύθυνος κουζίνας', 'Kitchen manager')],
+    filename: `${en ? 'order' : 'paraggelia'}_${order.code || ''}`,
   }
 }
 
