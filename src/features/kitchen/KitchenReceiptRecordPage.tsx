@@ -31,7 +31,7 @@ import type { AttachmentFile } from '../../design-system/AttachmentField'
 export function KitchenReceiptRecordPage() {
   const { receiptId } = useParams()
   const navigate = useNavigate()
-  const { goBack } = useContextualNavigation('/kitchen?tab=storage&view=receipts')
+  const { goBack } = useContextualNavigation('/kitchen?tab=receipts')
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()

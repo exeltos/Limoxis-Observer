@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react'
 import { FigureCards } from '../../design-system/FigureCards'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ChefHat, ClipboardCheck, EyeOff, Package, Pencil, Plus, RotateCcw, Route, Trash2, Truck, Undo2 } from 'lucide-react'
+import { AlertTriangle, EyeOff, Pencil, Plus, RotateCcw, Route, Trash2, Truck, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { SignalBadge } from '../../design-system/StatusBadge'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { FilterDate, FilterSelect } from '../../design-system/FilterBar'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -144,7 +143,7 @@ export function ReceiptsPanel({ state, access, onDialog, filters, setFilters, sw
 
 // --- Stock and catalogue ----------------------------------------------------------------------
 
-export function StockPanel({ state, stock, access, filters, setFilters, onDialog, onTrace, reload, organizationId, view = 'stock', switcher = null, onView }: Pick<KitchenPanelProps, 'state' | 'stock' | 'access' | 'onDialog' | 'onTrace' | 'reload' | 'organizationId'> & KitchenFilterProps & { view?: string | null, onView: (view: string) => void }) {
+export function StockPanel({ state, stock, access, filters, setFilters, onDialog, onTrace, reload, organizationId, view = 'stock', switcher = null }: Pick<KitchenPanelProps, 'state' | 'stock' | 'access' | 'onDialog' | 'onTrace' | 'reload' | 'organizationId'> & KitchenFilterProps & { view?: string | null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { confirm, notify } = useFeedback()
@@ -161,7 +160,6 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
   // A product already received cannot be deleted (its batches keep the traceability): it is made inactive and leaves new
   // receipts (owner, 27/11/2026); one never received can still be deleted.
   const received = new Set((state.receipts || []).flatMap(receipt => (receipt.items || []).map(item => item.productId)).filter(Boolean))
-  const inner = <ModeSwitch ariaLabel={en ? 'Stock view' : 'Προβολή αποθέματος'} value={view} onChange={onView} options={[{ value: 'stock', label: en ? 'Received products' : 'Παραληφθέντα προϊόντα', icon: Package }, { value: 'products', label: en ? 'Product list' : 'Λίστα προϊόντων', icon: ClipboardCheck }]} />
   async function removeProduct(item: { id: string }) {
     if (!await confirm({ title: en ? 'Delete product' : 'Διαγραφή προϊόντος', message: en ? 'The product leaves the catalogue; receipts keep its name. A product no longer bought is better made inactive.' : 'Το προϊόν φεύγει από τη λίστα· οι παραλαβές κρατούν το όνομά του. Για προϊόν που δεν αγοράζεται πια, προτιμήστε «Ανενεργό».', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
     try { await removeEntry(organizationId, 'kitchen_products', item.id); await reload() } catch (error) { notify(kitchenErrorMessage(error, language), 'error') }
@@ -170,7 +168,7 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
     try { await saveSimple(organizationId, 'kitchen_products', { ...item, active }); await reload() } catch (error) { notify(kitchenErrorMessage(error, language), 'error') }
   }
   if (view === 'products') return <KitchenList rows={products} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeFilters={(filters.category !== 'all' ? 1 : 0) + (filters.supplier && filters.supplier !== 'all' ? 1 : 0)}
-    onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', supplier: 'all' }))} end={<>{switcher}{inner}{access.canManage && <Button onClick={() => onDialog({ type: 'product', initial: newProduct() })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>}</>}
+    onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', supplier: 'all' }))} end={<>{switcher}{access.canManage && <Button onClick={() => onDialog({ type: 'product', initial: newProduct() })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>}</>}
     filters={<><FilterSelect label={en ? 'Supplier' : 'Προμηθευτής'} value={filters.supplier || 'all'} onChange={value => set('supplier', value)}><option value="all">{en ? 'All' : 'Όλοι'}</option>{productSuppliers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}<option value="none">{en ? 'No supplier' : 'Χωρίς προμηθευτή'}</option></FilterSelect><FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{PRODUCT_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect></>}
     columns={[{ key: 'code', label: en ? 'Supplier code' : 'Κωδικός προμηθευτή' }, { key: 'name', label: en ? 'Product' : 'Ονομασία / περιγραφή προϊόντος' }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'category', label: en ? 'Category' : 'Κατηγορία' }, { key: 'storage', label: en ? 'Storage' : 'Αποθήκευση' }, { key: 'actions', label: '' }]}
     rowProps={item => (item.active === false ? { className: 'kitchen-inactive-row' } : {})}
@@ -187,7 +185,7 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
         : <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => removeProduct(item)}><Trash2 size={14} /></IconButton>)}</div></td>
     </>} />
   return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeFilters={(filters.show !== 'in' ? 1 : 0) + (filters.storage !== 'all' ? 1 : 0)}
-    onClear={() => setFilters(current => ({ ...current, query: '', show: 'in', storage: 'all' }))} end={<>{switcher}{inner}</>}
+    onClear={() => setFilters(current => ({ ...current, query: '', show: 'in', storage: 'all' }))} end={switcher}
     filters={<>
       <FilterSelect label={en ? 'Show' : 'Εμφάνιση'} value={filters.show} onChange={value => set('show', value)}><option value="in">{en ? 'In stock' : 'Σε απόθεμα'}</option><option value="attention">{en ? 'Expiry, low, overuse' : 'Λήξεις, χαμηλό, υπερκατανάλωση'}</option><option value="all">{en ? 'Every batch' : 'Όλες οι παρτίδες'}</option></FilterSelect>
       <FilterSelect label={en ? 'Storage' : 'Αποθήκευση'} value={filters.storage} onChange={value => set('storage', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{STORAGES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -236,12 +234,10 @@ export function TraceDialog({ state: loaded, organizationId = null, receiptItemI
 
 // --- Menu & plan -----------------------------------------------------------------------------
 
-export function PlanPanel({ state, access, filters, setFilters, onDialog, onOpenDay }: Pick<KitchenPanelProps, 'state' | 'access' | 'onDialog' | 'onOpenDay'> & KitchenFilterProps) {
+export function PlanPanel({ state, access, filters, setFilters, onDialog, onOpenDay, view = 'days', switcher = null }: Pick<KitchenPanelProps, 'state' | 'access' | 'onDialog' | 'onOpenDay'> & KitchenFilterProps & { view?: string | null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const set = (key: string, value: string) => setFilters(current => ({ ...current, [key]: value }))
-  const view = filters.view || 'days'
-  const switcher = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view} onChange={value => set('view', value)} options={[{ value: 'days', label: en ? 'Production days' : 'Ημέρες παραγωγής', icon: ChefHat }, { value: 'menus', label: en ? 'Standard menus' : 'Τυπικά μενού', icon: ClipboardCheck }]} />
   if (view === 'menus') {
     const menus = [...state.menus].filter(item => matches(filters.query, item.name, item.menuText)).sort((a, b) => (Number(a.weekday) || 9) - (Number(b.weekday) || 9))
     return <KitchenList rows={menus} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search menu…' : 'Αναζήτηση μενού…'} onClear={() => set('query', '')} end={<>{switcher}{access.canManage && <Button onClick={() => onDialog({ type: 'menu', initial: newMenu() })}><Plus size={15} />{en ? 'Menu' : 'Μενού'}</Button>}</>}
