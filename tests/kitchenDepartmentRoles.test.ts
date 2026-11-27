@@ -17,6 +17,7 @@ describe('kitchen department staff', () => {
     expect(can('department_user', 'manage_kitchen', [], user)).toBe(false)
     expect(kitchenDepartmentCapabilities('department_manager', ward)).toEqual([])
     expect(kitchenDepartmentCapabilities('link_nurse', kitchen)).toEqual([])
+    expect(kitchenDepartmentCapabilities('department_manager', [{ department: { is_kitchen: true, is_active: false } }])).toEqual([])
   })
   it('the editor offers «Κουζίνα (HACCP)» kept apart from the clinical department type', () => {
     expect(departmentKindValue('kitchen')).toBe('kitchen')
@@ -28,6 +29,7 @@ describe('kitchen department staff', () => {
     expect(sql).toContain('add column if not exists is_kitchen boolean not null default false')
     expect(sql).toMatch(/om\.role = 'department_manager' or \(om\.role = 'department_user' and p_level in \('view','record'\)\)/)
     expect(sql).toContain("not (p_org = any (private.current_user_kitchen_orgs('manage')))")
-    expect(readSource('src/core/tenant/tenantService.ts')).toContain('department:departments(name, is_kitchen)')
+    expect(readSource('src/core/tenant/tenantService.ts')).toContain('department:departments(name, is_kitchen, is_active)')
+    expect(readSource('supabase/migrations/20261231642100_kitchen_signoff_owner.sql')).toContain("not (public.current_user_is_platform_owner() or p_org = any (private.current_user_kitchen_orgs('manage')))")
   })
 })

@@ -20,7 +20,7 @@ export async function listMemberships(userId: string | null | undefined): Promis
       id, role, status, custom_role_id, screen_guides,
       custom_role:custom_roles(id, name, capabilities:custom_role_capabilities(capability)),
       organization:organizations(id, name, code, type, status, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding, screen_guides_enabled, lira_launcher_enabled),
-      scopes:organization_member_scopes(department_id, department:departments(name, is_kitchen)),
+      scopes:organization_member_scopes(department_id, department:departments(name, is_kitchen, is_active)),
       add_ons:organization_member_capabilities(capability),
       assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
     `)
