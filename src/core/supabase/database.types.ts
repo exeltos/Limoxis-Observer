@@ -2621,6 +2621,7 @@ export type Database = {
         Row: {
           assignee_id: string | null
           control_id: string
+          created_at: string
           department_id: string
           frequency_config: Json | null
           id: string
@@ -2633,6 +2634,7 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           control_id: string
+          created_at?: string
           department_id: string
           frequency_config?: Json | null
           id?: string
@@ -2645,6 +2647,7 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           control_id?: string
+          created_at?: string
           department_id?: string
           frequency_config?: Json | null
           id?: string
@@ -3977,6 +3980,7 @@ export type Database = {
           organization_id: string
           patient_days_separate: boolean
           patient_days_tracked: boolean
+          is_kitchen: boolean
         }
         Insert: {
           code?: string | null
@@ -3988,6 +3992,7 @@ export type Database = {
           organization_id: string
           patient_days_separate?: boolean
           patient_days_tracked?: boolean
+          is_kitchen?: boolean
         }
         Update: {
           code?: string | null
@@ -3999,6 +4004,7 @@ export type Database = {
           organization_id?: string
           patient_days_separate?: boolean
           patient_days_tracked?: boolean
+          is_kitchen?: boolean
         }
         Relationships: [
           {

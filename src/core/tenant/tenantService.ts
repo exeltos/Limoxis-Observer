@@ -9,6 +9,7 @@ type OrganizationStatus = Database['public']['Enums']['organization_status']
 // organizations.country is required by the database; an empty field means Greece.
 export const DEFAULT_COUNTRY = 'Ελλάδα'
 export const countryOrDefault = (value: unknown): string => String(value || '').trim() || DEFAULT_COUNTRY
+import { kitchenDepartmentCapabilities } from '../permissions/kitchenDepartment'
 import { isOwnerPreview,previewDeletionImpact,previewDemoSeedResult,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers,previewPlatformUsers } from '../preview/ownerPreview'
 
 export async function listMemberships(userId: string | null | undefined): Promise<Membership[]> {
@@ -19,7 +20,7 @@ export async function listMemberships(userId: string | null | undefined): Promis
       id, role, status, custom_role_id, screen_guides,
       custom_role:custom_roles(id, name, capabilities:custom_role_capabilities(capability)),
       organization:organizations(id, name, code, type, status, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding, screen_guides_enabled, lira_launcher_enabled),
-      scopes:organization_member_scopes(department_id, department:departments(name)),
+      scopes:organization_member_scopes(department_id, department:departments(name, is_kitchen)),
       add_ons:organization_member_capabilities(capability),
       assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
     `)
@@ -35,7 +36,8 @@ export async function listMemberships(userId: string | null | undefined): Promis
     // Every department of the scopes by name: the calendar matches its items by the department's name.
     departmentNames: (membership.scopes ?? []).map((item) => item.department?.name).filter((name): name is string => Boolean(name)),
     capabilities: (membership.add_ons ?? []).map((item) => item.capability).filter(Boolean),
-    customCapabilities: (membership.custom_role?.capabilities ?? []).map((item) => item.capability).filter(Boolean),
+    // The kitchen's capabilities of the staff of a kitchen department (departments.is_kitchen), as the database grants them.
+    customCapabilities: [...new Set([...(membership.custom_role?.capabilities ?? []).map((item) => item.capability).filter(Boolean), ...kitchenDepartmentCapabilities(membership.role, membership.scopes)])],
     assignments: (membership.assignments ?? []).filter((item) => item.status !== 'completed' && item.status !== 'cancelled'),
     }))
 }
