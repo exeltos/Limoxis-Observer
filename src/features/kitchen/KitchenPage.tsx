@@ -21,7 +21,7 @@ import type { KitchenListRow, KitchenRecallDrill, KitchenScreenState, KitchenSto
 
 const initialFilters = () => ({
   receipts: { query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' },
-  stock: { query: '', show: 'in', storage: 'all', category: 'all' },
+  stock: { query: '', show: 'in', storage: 'all', category: 'all', supplier: 'all' },
   plan: { query: '', when: 'all', from: '', to: '', view: 'days' },
   verification: { query: '', range: '30' },
   recall: { query: '', result: 'all', scenario: 'all' },

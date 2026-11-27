@@ -33,8 +33,6 @@ const inPeriod = (date: string, from: string, to: string) => (!from || String(da
 // What the Today tab shows (overview of the loaded kitchen).
 export type KitchenSummary = ReturnType<typeof overview<KitchenState>>
 // The product list: the products grouped by supplier, each group under its heading row.
-type ProductRow = KitchenProduct & { supplierName: string, categoryLabel: string }
-type ProductListRow = ProductRow | { id: string, group: string, count: number }
 type KitchenHazard = 'hazardBiological' | 'hazardChemical' | 'hazardPhysical' | 'hazardAllergen'
 
 // An entry out of limits can become a quality deviation (the incident report, prefilled).
@@ -155,13 +153,14 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
   const rows = stock.filter(row => (filters.show === 'all' || (filters.show === 'in' && row.inStock && row.remaining > 0.0005) || (filters.show === 'attention' && (row.expiring || row.expired || row.low || row.overused))) && (filters.storage === 'all' || row.storage === filters.storage) && matches(filters.query, row.productName, row.supplierName, row.batchCode, row.lotLabel, row.receiptCode, fmtDay(row.receivedOn), fmtDay(row.expiryOn), row.storage))
     .sort((a, b) => String(b.receivedOn).localeCompare(String(a.receivedOn)) || String(a.productName).localeCompare(String(b.productName), 'el'))
   const products = (state.products || []).map(item => ({ ...item, supplierName: suppliers.get(item.supplierId) || '', categoryLabel: categoryLabel(item.category, language) }))
-    .filter(item => (filters.category === 'all' || item.category === filters.category) && matches(filters.query, item.name, item.supplierName, item.supplierCode, item.categoryLabel))
-    .sort((a, b) => (a.supplierName ? 0 : 1) - (b.supplierName ? 0 : 1) || String(a.supplierName).localeCompare(String(b.supplierName), 'el') || Number(a.active === false) - Number(b.active === false) || a.name.localeCompare(b.name, 'el'))
+    .filter(item => (filters.category === 'all' || item.category === filters.category) && (!filters.supplier || filters.supplier === 'all' || (filters.supplier === 'none' ? !item.supplierId : item.supplierId === filters.supplier)) && matches(filters.query, item.name, item.supplierName, item.supplierCode, item.categoryLabel))
+    .sort((a, b) => Number(a.active === false) - Number(b.active === false) || a.name.localeCompare(b.name, 'el'))
+  // The suppliers of the catalogue, for the «Supplier» filter (owner, 27/11/2026: one list, filtered by company).
+  const productSuppliers = [...new Map((state.products || []).filter(item => item.supplierId && suppliers.has(item.supplierId)).map(item => [item.supplierId, suppliers.get(item.supplierId) as string])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1], 'el'))
   // A product already received cannot be deleted (its batches keep the traceability): it is made inactive and leaves new
   // receipts (owner, 27/11/2026); one never received can still be deleted.
   const received = new Set((state.receipts || []).flatMap(receipt => (receipt.items || []).map(item => item.productId)).filter(Boolean))
-  // Grouped by supplier, as FileMaker's «ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ».
-  const grouped = products.flatMap((item, index): ProductListRow[] => (index === 0 || products[index - 1].supplierName !== item.supplierName ? [{ id: `group-${item.supplierName || 'none'}-${index}`, group: item.supplierName || (en ? 'No supplier' : 'Χωρίς προμηθευτή'), count: products.filter(other => other.supplierName === item.supplierName).length }, item] : [item]))
   const inner = <ModeSwitch ariaLabel={en ? 'Stock view' : 'Προβολή αποθέματος'} value={view} onChange={onView} options={[{ value: 'stock', label: en ? 'Received products' : 'Παραληφθέντα προϊόντα', icon: Package }, { value: 'products', label: en ? 'Product list' : 'Λίστα προϊόντων', icon: ClipboardCheck }]} />
   async function removeProduct(item: { id: string }) {
     if (!await confirm({ title: en ? 'Delete product' : 'Διαγραφή προϊόντος', message: en ? 'The product leaves the catalogue; receipts keep its name. A product no longer bought is better made inactive.' : 'Το προϊόν φεύγει από τη λίστα· οι παραλαβές κρατούν το όνομά του. Για προϊόν που δεν αγοράζεται πια, προτιμήστε «Ανενεργό».', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
@@ -170,15 +169,16 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
   async function setProductActive(item: KitchenProduct, active: boolean) {
     try { await saveSimple(organizationId, 'kitchen_products', { ...item, active }); await reload() } catch (error) { notify(kitchenErrorMessage(error, language), 'error') }
   }
-  if (view === 'products') return <KitchenList rows={grouped} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeFilters={filters.category !== 'all' ? 1 : 0}
-    onClear={() => setFilters(current => ({ ...current, query: '', category: 'all' }))} end={<>{switcher}{inner}{access.canManage && <Button onClick={() => onDialog({ type: 'product', initial: newProduct() })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>}</>}
-    filters={<FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{PRODUCT_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>}
-    columns={[{ key: 'code', label: en ? 'Supplier code' : 'Κωδικός προμηθευτή' }, { key: 'name', label: en ? 'Product' : 'Ονομασία / περιγραφή προϊόντος' }, { key: 'category', label: en ? 'Category' : 'Κατηγορία' }, { key: 'storage', label: en ? 'Storage' : 'Αποθήκευση' }, { key: 'actions', label: '' }]}
-    rowProps={item => ('group' in item ? { className: 'kitchen-group-row' } : item.active === false ? { className: 'kitchen-inactive-row' } : {})}
+  if (view === 'products') return <KitchenList rows={products} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} activeFilters={(filters.category !== 'all' ? 1 : 0) + (filters.supplier && filters.supplier !== 'all' ? 1 : 0)}
+    onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', supplier: 'all' }))} end={<>{switcher}{inner}{access.canManage && <Button onClick={() => onDialog({ type: 'product', initial: newProduct() })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>}</>}
+    filters={<><FilterSelect label={en ? 'Supplier' : 'Προμηθευτής'} value={filters.supplier || 'all'} onChange={value => set('supplier', value)}><option value="all">{en ? 'All' : 'Όλοι'}</option>{productSuppliers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}<option value="none">{en ? 'No supplier' : 'Χωρίς προμηθευτή'}</option></FilterSelect><FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{PRODUCT_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect></>}
+    columns={[{ key: 'code', label: en ? 'Supplier code' : 'Κωδικός προμηθευτή' }, { key: 'name', label: en ? 'Product' : 'Ονομασία / περιγραφή προϊόντος' }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'category', label: en ? 'Category' : 'Κατηγορία' }, { key: 'storage', label: en ? 'Storage' : 'Αποθήκευση' }, { key: 'actions', label: '' }]}
+    rowProps={item => (item.active === false ? { className: 'kitchen-inactive-row' } : {})}
     empty={!products.length} emptyTitle={en ? 'No products' : 'Δεν υπάρχουν προϊόντα'} emptyText={en ? 'The products the kitchen receives, with their storage and supplier.' : 'Τα προϊόντα που παραλαμβάνει η κουζίνα, με την αποθήκευση και τον προμηθευτή τους.'}
-    renderRow={item => 'group' in item ? <td colSpan={5}><strong>{item.group}</strong><small>{item.count} {en ? 'products' : 'προϊόντα'}</small></td> : <>
+    renderRow={item => <>
       <td className="nowrap-cell">{item.supplierCode || '—'}</td>
       <td><strong>{item.name}</strong>{item.active === false && <small>{en ? 'Inactive' : 'Ανενεργό'}</small>}</td>
+      <td>{item.supplierName || '—'}</td>
       <td>{item.categoryLabel}</td><td>{storageLabel(item.storage, language)}{item.lowStockQuantity !== '' && item.lowStockQuantity != null && <small>{en ? 'low at' : 'χαμηλό κάτω από'} {fmtQty(item.lowStockQuantity, language)} {unitLabel(item.unit, language)}</small>}</td>
       <td><div className="row-actions">{access.canManage && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => onDialog({ type: 'product', initial: { ...item } })}><Pencil size={14} /></IconButton>}{access.canManage && (received.has(item.id)
         ? (item.active === false
